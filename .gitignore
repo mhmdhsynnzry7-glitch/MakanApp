@@ -427,3 +427,22 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# قواعد نسخه محلی پروژه
+x64/
+x86/
+[Bb]in/
+.paket/paket.exe
+.fake/
+.cr/personal
+__pycache__/
+.mfractor/
+.localhistory/
+.ionide/
+
+# تنظیمات شخصی و فایل‌های محیط محلی
+.vscode/
+.env.*
+!.env.example
+!.env.sample
+appsettings.*.local.json
