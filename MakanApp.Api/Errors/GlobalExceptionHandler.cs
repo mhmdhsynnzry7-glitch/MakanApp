@@ -1,3 +1,4 @@
+using MakanApp.Application.Guardian;
 using MakanApp.Application.Identity;
 using MakanApp.Application.Organization;
 using Microsoft.AspNetCore.Diagnostics;
@@ -22,6 +23,9 @@ public sealed class GlobalExceptionHandler(
             OrganizationException organizationException => CreateKnownProblem(
                 organizationException.Code,
                 organizationException.Message),
+            GuardianException guardianException => CreateKnownProblem(
+                guardianException.Code,
+                guardianException.Message),
             _ => CreateUnexpectedProblem(exception, httpContext.TraceIdentifier)
         };
 
@@ -56,6 +60,10 @@ public sealed class GlobalExceptionHandler(
             OrganizationErrorCodes.RoleNotActive => StatusCodes.Status403Forbidden,
             OrganizationErrorCodes.WorkspaceNotAllowed => StatusCodes.Status403Forbidden,
             OrganizationErrorCodes.ConcurrencyConflict => StatusCodes.Status412PreconditionFailed,
+            GuardianErrorCodes.GuardianRelationNotFound => StatusCodes.Status404NotFound,
+            GuardianErrorCodes.ChildContextNotFound => StatusCodes.Status404NotFound,
+            GuardianErrorCodes.ParentRoleRequired => StatusCodes.Status403Forbidden,
+            GuardianErrorCodes.ChildContextNotAllowed => StatusCodes.Status403Forbidden,
             _ => StatusCodes.Status400BadRequest
         };
 

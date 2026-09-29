@@ -8,8 +8,9 @@ namespace MakanApp.Api.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/v1/workspaces")]
-public sealed class WorkspacesController(IOrganizationService organizationService)
-    : ControllerBase
+public sealed class WorkspacesController(
+    IOrganizationService organizationService,
+    IAccessContextResolver accessContextResolver) : ControllerBase
 {
     [HttpGet("me")]
     [ProducesResponseType<IReadOnlyCollection<WorkspaceResult>>(StatusCodes.Status200OK)]
@@ -41,7 +42,7 @@ public sealed class WorkspacesController(IOrganizationService organizationServic
     public async Task<ActionResult<AccessContext>> GetCurrentAccessContext(
         CancellationToken cancellationToken)
     {
-        var result = await organizationService.GetCurrentAccessContextAsync(
+        var result = await accessContextResolver.ResolveAsync(
             AuthenticatedSession.GetUserId(User),
             AuthenticatedSession.GetSessionId(User),
             cancellationToken);

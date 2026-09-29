@@ -133,6 +133,18 @@ OTP با مولد تصادفی رمزنگاری تولید و فقط به‌صو
 
 پذیرش دعوت در transaction با isolation سطح `Serializable` و lockهای SQL Server انجام می‌شود و تکرار پذیرش همان اثر قبلی را برمی‌گرداند. filtered unique indexها از عضویت فعال و نقش فعال تکراری جلوگیری می‌کنند و `rowversion` روی رکوردهای قابل تغییر تعارض stale write را آشکار می‌کند.
 
+## سرپرست و بافت والد/فرزند
+
+`GuardianRelation` در schema با نام `guardian` کاربر سرپرست را در محدوده همان سازمان به `OrganizationPerson` فراگیر متصل می‌کند. فقط رابطه `Active`، فضای سازمانی معتبر و نقش فعال `Parent` دسترسی می‌دهند؛ بنابراین نقش والد به‌تنهایی مجوز مشاهده همه فراگیران سازمان نیست. انتخاب فرزند در `UserSession.SelectedSubjectOrganizationPersonId` ذخیره می‌شود و در هر resolve دوباره رابطه، سازمان و وضعیت فراگیر بررسی می‌شوند.
+
+| متد | مسیر | نیاز به ورود |
+|---|---|---|
+| `GET` | `/api/v1/guardian/children` | بله؛ فضای سازمانی با نقش Parent |
+| `POST` | `/api/v1/guardian/children/{organizationPersonId}/select` | بله؛ رابطه فعال هم‌سازمانی |
+| `GET` | `/api/v1/guardian/relations/{organizationPersonId}` | بله؛ رابطه فعال هم‌سازمانی |
+
+در این مرحله endpoint عمومی برای ساخت یا مدیریت `GuardianRelation` وجود ندارد. migration با نام `AddGuardianRelations` جدول `guardian.GuardianRelations`، FK ترکیبی هم‌سازمانی، filtered unique index رابطه فعال و `rowversion` را ایجاد می‌کند. مجوزهای جزئی مشاهده نمره، حضور و غیاب، گزارش و ارتباطات به مرحله‌های بعدی مدل‌های آموزشی موکول شده‌اند.
+
 برای اعمال migration روی database مجاز و ایزوله:
 
 ~~~powershell
@@ -152,8 +164,8 @@ dotnet build MakanApp.sln --configuration Debug --nologo
 dotnet test MakanApp.sln --configuration Debug --nologo
 ~~~
 
-- Unit Tests علاوه بر قواعد Identity و Organization، lifecycle رکورد `OrganizationPerson` را نیز بررسی می‌کنند.
-- Integration Tests migration واقعی، endpointهای Identity/Profile/Organization و قیود `OrganizationPerson` را روی SQL Server LocalDB اختصاصی `MakanApp_OrganizationPerson_IntegrationTests_Step5A0` بررسی و آن database را در پایان حذف می‌کنند؛ EF Core InMemory استفاده نمی‌شود.
+- Unit Tests علاوه بر قواعد Identity و Organization، lifecycle رکوردهای `OrganizationPerson` و `GuardianRelation` را نیز بررسی می‌کنند.
+- Integration Tests migration واقعی، endpointهای Identity/Profile/Organization/Guardian و قیود SQL Server را روی LocalDB اختصاصی `MakanApp_Guardian_IntegrationTests_Step5A` بررسی و آن database را در پایان حذف می‌کنند؛ EF Core InMemory استفاده نمی‌شود.
 - Architecture Tests جهت وابستگی Onion و نبود EF Core/ASP.NET Core در لایه‌های داخلی را enforce می‌کنند.
 
 ## اجرا
@@ -178,4 +190,4 @@ https://localhost:7063/openapi/v1.json
 
 ## محدودیت‌ها
 
-ارسال پیامک واقعی و rate limiting توزیع‌شده هنوز پیاده‌سازی نشده‌اند. ایجاد دعوت توسط مدیر و مدیریت عمومی سازمان در API این مرحله ارائه نشده‌اند. `GuardianRelation`، انتخاب فرزند، مدل‌های آموزشی، Messaging، Copilot، audit، outbox و deployment نیز هنوز پیاده‌سازی نشده‌اند.
+ارسال پیامک واقعی و rate limiting توزیع‌شده هنوز پیاده‌سازی نشده‌اند. ایجاد دعوت توسط مدیر، مدیریت عمومی سازمان و مدیریت عمومی `GuardianRelation` در API این مرحله ارائه نشده‌اند. مجوزهای جزئی رابطه سرپرستی، مدل‌های آموزشی، Messaging، Copilot، audit، outbox و deployment نیز هنوز پیاده‌سازی نشده‌اند.

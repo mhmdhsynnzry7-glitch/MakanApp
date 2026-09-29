@@ -23,7 +23,8 @@ public sealed record AccessContext(
     WorkspaceType WorkspaceType,
     Guid? OrganizationId,
     Guid? MembershipId,
-    OrganizationRole? ActiveRole);
+    OrganizationRole? ActiveRole,
+    Guid? SubjectOrganizationPersonId);
 
 public sealed record InvitationResult(
     Guid Id,

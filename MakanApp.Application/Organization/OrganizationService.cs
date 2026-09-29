@@ -5,7 +5,7 @@ namespace MakanApp.Application.Organization;
 
 public sealed class OrganizationService(
     IOrganizationStore store,
-    TimeProvider timeProvider) : IOrganizationService, IAccessContextResolver
+    TimeProvider timeProvider) : IOrganizationService
 {
     public async Task<IReadOnlyCollection<WorkspaceResult>> GetMyWorkspacesAsync(
         Guid userId,
@@ -88,16 +88,17 @@ public sealed class OrganizationService(
             WorkspaceType.Organization,
             organization.Id,
             membership.Id,
-            roleAssignment.Role);
+            roleAssignment.Role,
+            null);
     }
 
     public Task<AccessContext> GetCurrentAccessContextAsync(
         Guid userId,
         Guid sessionId,
         CancellationToken cancellationToken) =>
-        ResolveAsync(userId, sessionId, cancellationToken);
+        ResolveBaseContextAsync(userId, sessionId, cancellationToken);
 
-    public async Task<AccessContext> ResolveAsync(
+    private async Task<AccessContext> ResolveBaseContextAsync(
         Guid userId,
         Guid sessionId,
         CancellationToken cancellationToken)
@@ -132,7 +133,8 @@ public sealed class OrganizationService(
             WorkspaceType.Organization,
             workspace.OrganizationId,
             workspace.MembershipId,
-            workspace.Role);
+            workspace.Role,
+            null);
     }
 
     public async Task<IReadOnlyCollection<InvitationResult>> GetMyInvitationsAsync(
@@ -295,6 +297,7 @@ public sealed class OrganizationService(
             userId,
             sessionId,
             WorkspaceType.Personal,
+            null,
             null,
             null,
             null);
