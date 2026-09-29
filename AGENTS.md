@@ -1128,3 +1128,38 @@ Rules:
 - Do not invent tests, files, commands, or behavior.
 - Do not claim success unless build/tests actually succeeded.
 - Keep the explanation practical and educational.
+
+## Git Completion Rule
+
+At the end of every implementation step:
+
+1. Run restore.
+2. Run build.
+3. Fix all build errors caused by the step.
+4. Run tests.
+5. Fix all failing tests caused by the step.
+6. Run a final build and final test suite.
+7. Review:
+   - git status
+   - git diff --stat
+   - git diff
+8. If build and tests both succeed:
+   - stage only relevant files
+   - create a local commit
+   - push the commit to the current tracked remote branch
+9. If build or tests fail:
+   - do NOT commit
+   - do NOT push
+   - report the blocker
+10. Never force-push.
+11. Never rewrite remote history.
+12. Never push unrelated or pre-existing user changes.
+13. If the current branch has no configured upstream, stop and ask before creating one.
+14. If authentication or remote permissions prevent push, report the exact blocker.
+15. After a successful push, include:
+   - commit hash
+   - commit message
+   - branch name
+   - remote name
+   - push result
+   in the final Persian developer learning report.
