@@ -1,117 +1,164 @@
-# ماکان‌اپ — MakanApp
+# ماکان‌اپ — MakanApp Backend
 
-این پوشه فعلاً یک پروژه C# از نوع ASP.NET Core Web API با هدف `net9.0` دارد. کد موجود شامل نمونه `WeatherForecast`، تولید سند OpenAPI و Swagger UI در محیط توسعه است. رابط کاربری، قابلیت آموزشی، احراز هویت و اتصال دیتابیس پیاده‌سازی نشده‌اند؛ برای اجرای همین نسخه دیتابیس یا حساب کاربری لازم نیست.
+این مخزن فقط Backend ماکان را نگه می‌دارد. ساختار فعلی یک Modular Monolith با Onion Architecture روی ASP.NET Core و .NET 9 است. Persistence بر Entity Framework Core 9 و Microsoft SQL Server بنا شده است. Frontend در این workspace وجود ندارد.
 
-[سند پایه تحلیل و توسعه](docs/DevelopmentBaseline.md) نیازمندی‌ها و پیشنهادهای مراحل آینده را توضیح می‌دهد. سناریوهای پذیرش آن سند، تست اجراشده یا قابلیت فعلی پروژه نیستند. قواعد کار روی پروژه در [AGENTS.md](AGENTS.md) آمده‌اند.
+اسناد مرجع در `docs/project-context` و قواعد کار در `AGENTS.md` قرار دارند.
 
-## ساختار موجود
+## مسیرها
 
-```text
+~~~text
+Workspace:      D:\Project\MakanApp\MakanApp-Backend
+Solution:       D:\Project\MakanApp\MakanApp-Backend\MakanApp.sln
+API project:    D:\Project\MakanApp\MakanApp-Backend\MakanApp.Api\MakanApp.Api.csproj
+Domain project: D:\Project\MakanApp\MakanApp-Backend\MakanApp.Domain\MakanApp.Domain.csproj
+~~~
+
+## ساختار Onion
+
+~~~text
 MakanApp.sln
-AGENTS.md
-README.md
-docs/
-  DevelopmentBaseline.md
-MakanApp/
-  MakanApp.csproj
-  Program.cs
+MakanApp.Domain/
+  Common/DomainAssembly.cs
+MakanApp.Application/
+  Common/ApplicationAssembly.cs
+MakanApp.Infrastructure/
+  Persistence/MakanDbContext.cs
+  DependencyInjection.cs
+MakanApp.Api/
   Controllers/
-    WeatherForecastController.cs
-  WeatherForecast.cs
-  Properties/
-    launchSettings.json
+  Errors/GlobalExceptionHandler.cs
+  Properties/launchSettings.json
+  Program.cs
   appsettings.json
   appsettings.Development.json
-  MakanApp.http
-```
+  MakanApp.Api.http
+tests/
+  MakanApp.UnitTests/
+  MakanApp.IntegrationTests/
+  MakanApp.ArchitectureTests/
+docs/project-context/
+~~~
 
-- `MakanApp.sln` تنها پروژه `MakanApp/MakanApp.csproj` را در بر دارد.
-- `Program.cs` سرویس‌های Controller و OpenAPI، رابط Swagger UI و مسیر پردازش درخواست را تنظیم می‌کند.
-- `WeatherForecastController.cs` درخواست `GET /weatherforecast` را با پنج پیش‌بینی نمونه و تصادفی پاسخ می‌دهد؛ این داده‌ها ذخیره نمی‌شوند.
-- وابستگی‌های مستقیم NuGet شامل `Microsoft.AspNetCore.OpenApi` نسخه `9.0.5` و `Swashbuckle.AspNetCore.SwaggerUI` نسخه `10.2.3` هستند.
-- `launchSettings.json` پروفایل‌های اجرای محلی و `MakanApp.http` درخواست نمونه را نگه می‌دارند.
-- پوشه‌های `.vs/` و `.vscode/` و فایل `MakanApp.csproj.user` تنظیمات محلی ویرایشگر هستند؛ `bin/` و `obj/` خروجی ابزارهای build هستند. این فایل‌ها و خروجی‌های publish در Git ثبت نمی‌شوند.
+مسئولیت لایه‌ها:
 
-## دریافت پروژه
+- `MakanApp.Domain`: قوانین و مدل خالص دامنه؛ بدون وابستگی به framework یا لایه‌های بیرونی.
+- `MakanApp.Application`: use caseها، DTOها و portهای موردنیاز؛ وابسته فقط به Domain.
+- `MakanApp.Infrastructure`: EF Core، SQL Server و adapterهای بیرونی؛ وابسته به Application و Domain.
+- `MakanApp.Api`: HTTP host، Controllerها، ProblemDetails، OpenAPI و composition root؛ وابسته به Application و Infrastructure.
 
-```powershell
-git clone https://github.com/mhmdhsynnzry7-glitch/MakanApp.git
-cd MakanApp
-```
+جهت مجاز وابستگی:
 
-## پیش‌نیازهای Visual Studio
+~~~text
+Api -> Infrastructure -> Application -> Domain
+Api --------------------> Application
+Infrastructure ----------------------> Domain
+~~~
 
-- Windows و Visual Studio 2022 با workload به نام **ASP.NET and web development**.
-- SDK نسخه .NET 9؛ نصب Runtime به‌تنهایی برای build کافی نیست. هدف `net9.0` در Visual Studio 2022 نسخه `17.12` به بعد پشتیبانی می‌شود. ترکیب متناظر با SDK موجود `9.0.300`، Visual Studio `17.14` است؛ برای انتخاب نسخه سازگار به [جدول رسمی Microsoft](https://learn.microsoft.com/en-us/dotnet/core/porting/versioning-sdk-msbuild-vs) مراجعه کنید.
-- دسترسی به منبع NuGet برای بازیابی وابستگی‌ها در اولین build.
+وابستگی معکوس مجاز نیست. Controllerها فقط در `MakanApp.Api/Controllers` قرار می‌گیرند و EF Core فقط در Infrastructure استفاده می‌شود.
 
-برای مشاهده SDKهای نصب‌شده، در Terminal اجرا کنید:
+## پیش‌نیازها
 
-```powershell
-dotnet --info
-```
+- Windows و Visual Studio 2022 یا VS Code با C# Dev Kit
+- .NET SDK 9
+- Microsoft SQL Server
+- دسترسی به NuGet برای نخستین restore
 
-در این پروژه `global.json` وجود ندارد. نسخه .NET یا چارچوب هدف را برای حل مشکل محیط، بدون تأیید صاحب پروژه تغییر ندهید.
+تمام پروژه‌ها `net9.0` را هدف می‌گیرند. وجود SDK جدیدتر روی سیستم، TargetFramework پروژه را تغییر نمی‌دهد.
 
-## اجرا در Visual Studio
+## SQL Server و EF Core
 
-1. از **File > Open > Project/Solution** فایل `MakanApp.sln` را باز کنید.
-2. در **Solution Explorer** روی پروژه `MakanApp` راست‌کلیک و **Set as Startup Project** را انتخاب کنید.
-3. پیکربندی **Debug / Any CPU** و پروفایل اجرای **https** را در نوار اجرا انتخاب کنید. پروفایل‌های `http` و `https` برنامه را با Kestrel اجرا می‌کنند؛ پروفایل `IIS Express` نیز برای اجرای محلی موجود است.
-4. از **Build > Build Solution** یا میانبر `Ctrl+Shift+B` استفاده کنید و پایان موفق بازیابی NuGet و build را در پنجره **Output** بررسی کنید.
-5. با `F5` برای دیباگ یا `Ctrl+F5` بدون دیباگ برنامه را اجرا کنید. برای HTTPS، در صورت درخواست Visual Studio، گواهی توسعه محلی را مورد اعتماد قرار دهید.
-6. مرورگر به‌صورت خودکار روی [Swagger UI](https://localhost:7063/swagger) باز می‌شود؛ در پروفایل‌ها `launchBrowser` برابر `true` و `launchUrl` برابر `swagger` است. [پیش‌بینی نمونه](https://localhost:7063/weatherforecast) و [سند OpenAPI](https://localhost:7063/openapi/v1.json) نیز در دسترس‌اند.
-7. پس از بررسی، اجرای دیباگ را با **Stop Debugging** یا اجرای کنسولی را با `Ctrl+C` متوقف کنید.
+`MakanDbContext` در `MakanApp.Infrastructure/Persistence` قرار دارد و با `Microsoft.EntityFrameworkCore.SqlServer` در DI ثبت می‌شود. کلید اتصال:
 
-پروفایل‌های فعلی در `MakanApp/Properties/launchSettings.json`:
+~~~text
+ConnectionStrings:MakanDatabase
+~~~
 
-| پروفایل | نشانی‌ها | محیط |
-| --- | --- | --- |
-| `https` | `https://localhost:7063` و `http://localhost:5077` | `Development` |
-| `http` | `http://localhost:5077` | `Development` |
-| `IIS Express` | `https://localhost:44362` و `http://localhost:3576` | `Development` |
+`appsettings.Development.json` یک نمونه credential-free برای LocalDB دارد. برای جایگزینی امن مقدار در توسعه:
 
-برنامه `UseHttpsRedirection` دارد؛ هنگام اجرای پروفایل `https` از نشانی HTTPS استفاده کنید. پروفایل `http` به‌تنهایی پورت HTTPS تعریف نمی‌کند و ممکن است هشدار تعیین پورت تغییرمسیر را نمایش دهد.
+~~~powershell
+dotnet user-secrets set "ConnectionStrings:MakanDatabase" "Server=(localdb)\MSSQLLocalDB;Database=MakanApp;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True" --project MakanApp.Api/MakanApp.Api.csproj
+~~~
 
-مسیر `/` صفحه‌ای ندارد و پاسخ `404` در آن به‌تنهایی نشانه خرابی اجرا نیست. Swagger UI در `/swagger` سند JSON موجود در `/openapi/v1.json` را نمایش می‌دهد و امکان ارسال درخواست آزمایشی به API را فراهم می‌کند. هر دو مسیر مستندات فقط در محیط `Development` فعال هستند.
+در محیط‌های دیگر مقدار باید از secret store یا `ConnectionStrings__MakanDatabase` تأمین شود. migration با نام `InitialIdentity` در Infrastructure قرار دارد. `Database.EnsureCreated` در برنامه استفاده نمی‌شود و migration هنگام startup اجرا نمی‌شود؛ اعمال migration یک عملیات کنترل‌شده و جداگانه است.
 
-برای ارسال درخواست از خود Visual Studio، فایل `MakanApp/MakanApp.http` را باز کنید و **Send Request** را بزنید. نشانی فعلی آن `http://localhost:5077` است؛ برای پروفایل `https` می‌توانید مقدار `MakanApp_HostAddress` را در نسخه محلی خود به `https://localhost:7063` تنظیم کنید.
+## API Foundation
 
-## فرمان‌های معادل در Terminal
+- ASP.NET Core Controllers
+- OpenAPI و Swagger UI در Development
+- ProblemDetails و exception handling متمرکز
+- HTTPS redirection خارج از Testing
+- health checks
+- DI composition در `MakanApp.Api/Program.cs`
 
-از پوشه‌ای که `MakanApp.sln` در آن قرار دارد اجرا کنید:
+| مسیر | محیط | کاربرد |
+|---|---|---|
+| `GET /health` | همه محیط‌ها | سلامت application |
+| `GET /openapi/v1.json` | Development | سند OpenAPI |
+| `/swagger` | Development | Swagger UI |
 
-```powershell
+## Identity، OTP و پروفایل
+
+مدل‌های `User`، `Person`، `UserCredential`، `OtpChallenge` و `UserSession` در schema با نام `identity` نگهداری می‌شوند. هویت User از شماره تلفن جدا است و نقش سازمانی در ثبت‌نام یا claim نشست قرار نمی‌گیرد.
+
+| متد | مسیر | نیاز به ورود |
+|---|---|---|
+| `POST` | `/api/v1/auth/otp/challenges` | خیر |
+| `POST` | `/api/v1/auth/otp/verify` | خیر |
+| `POST` | `/api/v1/auth/logout` | بله |
+| `GET` | `/api/v1/me` | بله |
+| `PATCH` | `/api/v1/me/profile` | بله |
+
+OTP با مولد تصادفی رمزنگاری تولید و فقط به‌صورت HMAC همراه salt در SQL Server ذخیره می‌شود. کد منقضی می‌شود، یک‌بارمصرف است و محدودیت تلاش و ارسال مجدد دارد. نشست با Bearer token تصادفی کار می‌کند و فقط HMAC توکن در `identity.UserSessions` ذخیره می‌شود؛ logout همان نشست را revoke می‌کند.
+
+`DevelopmentSmsSender` فقط در محیط‌های `Development` و `Testing` ثبت می‌شود. این adapter اتصال واقعی پیامک نیست، OTP را در response یا log منتشر نمی‌کند و نگهداری موقت in-memory آن صرفاً برای تست خودکار است. در محیط‌های دیگر adapter توسعه فعال نمی‌شود و تا زمان پیکربندی سرویس واقعی، درخواست ارسال پیامک با خطای کنترل‌شده رد می‌شود.
+
+کلید `Identity:SecurityKey` باید خارج از Development/Testing از secret store تأمین شود و حداقل ۳۲ بایت UTF-8 داشته باشد. کلید Development/Testing هنگام شروع process به‌صورت تصادفی ساخته می‌شود؛ بنابراین نشست‌های آن محیط‌ها بعد از restart معتبر نمی‌مانند.
+
+درخواست OTP علاوه بر محدودیت پایدار مبتنی بر شماره تلفن، policy داخلی ASP.NET Core مبتنی بر IP دارد. policy مبتنی بر IP در این مرحله in-memory و تک-instance است؛ استقرار چند-instance در آینده به rate limiter توزیع‌شده نیاز دارد.
+
+برای اعمال migration روی database مجاز و ایزوله:
+
+~~~powershell
+dotnet tool restore
+dotnet tool run dotnet-ef database update --project MakanApp.Infrastructure/MakanApp.Infrastructure.csproj --startup-project MakanApp.Infrastructure/MakanApp.Infrastructure.csproj
+~~~
+
+این فرمان را روی Production یا database عادی توسعه بدون فرایند migration مصوب اجرا نکنید.
+
+## Restore، build و test
+
+از ریشه workspace اجرا کنید:
+
+~~~powershell
+dotnet restore MakanApp.sln
 dotnet build MakanApp.sln --configuration Debug --nologo
-dotnet run --project MakanApp/MakanApp.csproj --configuration Debug --no-build --launch-profile https
-```
+dotnet test MakanApp.sln --configuration Debug --nologo
+~~~
 
-فرمان build بازیابی وابستگی‌ها را نیز انجام می‌دهد. اگر گواهی HTTPS توسعه مورد اعتماد نیست، می‌توانید در محیط توسعه محلی فرمان زیر را اجرا و پیام تأیید سیستم را بررسی کنید:
+- Unit Tests قوانین expiration، مصرف، سقف تلاش OTP و normalization شماره تلفن را بررسی می‌کنند.
+- Integration Tests migration واقعی و endpointهای Identity/Profile را روی SQL Server LocalDB اختصاصی `MakanApp_Identity_IntegrationTests_Step3` بررسی و آن database را در پایان حذف می‌کنند؛ EF Core InMemory استفاده نمی‌شود.
+- Architecture Tests جهت وابستگی Onion و نبود EF Core/ASP.NET Core در لایه‌های داخلی را enforce می‌کنند.
 
-```powershell
-dotnet dev-certs https --trust
-```
+## اجرا
 
-خطای `NU1301` هنگام دسترسی به `https://api.nuget.org/v3/index.json` مربوط به restore است؛ اتصال شبکه، تنظیمات پراکسی و اعتماد گواهی محیط را بررسی کنید. خاموش‌کردن اعتبارسنجی TLS یا تغییر نسخه .NET راه‌حل این مرحله نیست.
+~~~powershell
+dotnet run --project MakanApp.Api/MakanApp.Api.csproj --configuration Debug --launch-profile https
+~~~
 
-## وضعیت بررسی نسخه فعلی
+~~~text
+https://localhost:7063/health
+https://localhost:7063/swagger
+https://localhost:7063/openapi/v1.json
+~~~
 
-| بررسی | نتیجه واقعی |
-| --- | --- |
-| SDK اجراشده | `9.0.300` با هدف پروژه `net9.0` |
-| `dotnet build MakanApp.sln --configuration Debug --nologo` | موفق؛ صفر خطا و صفر هشدار |
-| نخستین تلاش build در محیط محدود | ناموفق با `NU1301` و خطای SSL اتصال NuGet؛ اجرای مجدد همان فرمان با دسترسی تأییدشده موفق شد |
-| پروژه یا کد تست | پروژه تست در Solution و فایل‌های پروژه پیدا نشد؛ تست مبتنی بر پروژه اجرا نشده است |
-| بررسی اجرایی HTTP | چهار بررسی موفق: صفحه Swagger، اتصال تنظیمات آن به OpenAPI، سند شامل `GET /WeatherForecast` و پاسخ API با پنج رکورد |
-| اجرای تعاملی Visual Studio | بررسی نشده است |
-| مخزن Git | شاخه محلی `main` با حفظ commit اولیه به `origin/main` متصل شده است؛ وضعیت همگام‌سازی با `git status` قابل بررسی است |
+## Visual Studio
 
-پس از اضافه‌شدن پروژه تست به Solution در مرحله‌ای مجاز، ابتدا build و سپس تست‌های مرتبط را اجرا کنید. برای تست‌های داخل Solution پس از build موفق می‌توان از این فرمان استفاده کرد:
+1. `MakanApp.sln` را باز کنید.
+2. `MakanApp.Api` را Startup Project قرار دهید.
+3. پیکربندی `Debug / Any CPU` و پروفایل `https` را انتخاب کنید.
+4. Solution را build و اجرا کنید.
+5. `/health` یا Swagger UI را بررسی کنید.
 
-```powershell
-dotnet test MakanApp.sln --configuration Debug --no-build --nologo
-```
+## محدودیت‌ها
 
-این فرمان در مرحله آماده‌سازی اجرا نشده است، چون پروژه تستی وجود ندارد. خروج موفق فرمان با صفر تست نیز موفقیت تست محسوب نمی‌شود.
-
-نسخه فعلی شامل Web API نمونه، Swagger UI و مستندات توسعه است؛ قابلیت‌های آموزشی سند پایه هنوز پیاده‌سازی نشده‌اند.
+ارسال پیامک واقعی و rate limiting توزیع‌شده هنوز پیاده‌سازی نشده‌اند. Organization، Membership، نقش‌های سازمانی، School، قابلیت‌های آموزشی، Messaging، Copilot، audit، idempotency، outbox و deployment نیز خارج از STEP 3 باقی مانده‌اند.

@@ -1,0 +1,6 @@
+@MakanApp_Api_HostAddress = http://localhost:5077
+
+GET {{MakanApp_Api_HostAddress}}/health
+Accept: application/json
+
+###
