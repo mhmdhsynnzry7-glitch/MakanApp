@@ -13,6 +13,7 @@ public sealed class MakanDbContext(DbContextOptions<MakanDbContext> options)
     public DbSet<OtpChallenge> OtpChallenges => Set<OtpChallenge>();
     public DbSet<UserSession> UserSessions => Set<UserSession>();
     public DbSet<MakanApp.Domain.Organization.Organization> Organizations => Set<MakanApp.Domain.Organization.Organization>();
+    public DbSet<OrganizationPerson> OrganizationPersons => Set<OrganizationPerson>();
     public DbSet<Membership> Memberships => Set<Membership>();
     public DbSet<RoleAssignment> RoleAssignments => Set<RoleAssignment>();
     public DbSet<Invitation> Invitations => Set<Invitation>();

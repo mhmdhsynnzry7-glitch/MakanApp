@@ -79,7 +79,7 @@ ConnectionStrings:MakanDatabase
 dotnet user-secrets set "ConnectionStrings:MakanDatabase" "Server=(localdb)\MSSQLLocalDB;Database=MakanApp;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True" --project MakanApp.Api/MakanApp.Api.csproj
 ~~~
 
-در محیط‌های دیگر مقدار باید از secret store یا `ConnectionStrings__MakanDatabase` تأمین شود. migrationهای `InitialIdentity` و `AddOrganizationMemberships` در Infrastructure قرار دارند. `Database.EnsureCreated` در برنامه استفاده نمی‌شود و migration هنگام startup اجرا نمی‌شود؛ اعمال migration یک عملیات کنترل‌شده و جداگانه است.
+در محیط‌های دیگر مقدار باید از secret store یا `ConnectionStrings__MakanDatabase` تأمین شود. migrationهای `InitialIdentity`، `AddOrganizationMemberships` و `AddOrganizationPersons` در Infrastructure قرار دارند. `Database.EnsureCreated` در برنامه استفاده نمی‌شود و migration هنگام startup اجرا نمی‌شود؛ اعمال migration یک عملیات کنترل‌شده و جداگانه است.
 
 ## API Foundation
 
@@ -118,7 +118,7 @@ OTP با مولد تصادفی رمزنگاری تولید و فقط به‌صو
 
 ## سازمان، عضویت، دعوت و فضای کاری
 
-مدل‌های `Organization`، `Membership`، `RoleAssignment` و `Invitation` در schema با نام `organization` نگهداری می‌شوند. نقش سازمانی به عضویت تعلق دارد و از چهار مقدار پایدار `Student`، `Teacher`، `Parent` و `Manager` استفاده می‌کند؛ هیچ نقش سراسری روی User ذخیره نمی‌شود.
+مدل‌های `Organization`، `OrganizationPerson`، `Membership`، `RoleAssignment` و `Invitation` در schema با نام `organization` نگهداری می‌شوند. `OrganizationPerson` رکورد سازمانی یک `identity.Person` است، `UserId` ندارد و اجازه می‌دهد شخص بدون حساب کاربری در یک یا چند سازمان رکورد مستقل داشته باشد. نقش سازمانی به عضویت تعلق دارد و از چهار مقدار پایدار `Student`، `Teacher`، `Parent` و `Manager` استفاده می‌کند؛ هیچ نقش سراسری روی User ذخیره نمی‌شود.
 
 | متد | مسیر | نیاز به ورود |
 |---|---|---|
@@ -152,8 +152,8 @@ dotnet build MakanApp.sln --configuration Debug --nologo
 dotnet test MakanApp.sln --configuration Debug --nologo
 ~~~
 
-- Unit Tests علاوه بر قواعد Identity، انقضا و idempotency دعوت، چرخه عضویت و استقلال فضای شخصی را بررسی می‌کنند.
-- Integration Tests migration واقعی و endpointهای Identity/Profile/Organization را روی SQL Server LocalDB اختصاصی `MakanApp_Organization_IntegrationTests_Step4` بررسی و آن database را در پایان حذف می‌کنند؛ EF Core InMemory استفاده نمی‌شود.
+- Unit Tests علاوه بر قواعد Identity و Organization، lifecycle رکورد `OrganizationPerson` را نیز بررسی می‌کنند.
+- Integration Tests migration واقعی، endpointهای Identity/Profile/Organization و قیود `OrganizationPerson` را روی SQL Server LocalDB اختصاصی `MakanApp_OrganizationPerson_IntegrationTests_Step5A0` بررسی و آن database را در پایان حذف می‌کنند؛ EF Core InMemory استفاده نمی‌شود.
 - Architecture Tests جهت وابستگی Onion و نبود EF Core/ASP.NET Core در لایه‌های داخلی را enforce می‌کنند.
 
 ## اجرا
