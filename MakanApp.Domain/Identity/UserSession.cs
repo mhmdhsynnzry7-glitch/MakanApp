@@ -26,6 +26,8 @@ public sealed class UserSession
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime ExpiresAtUtc { get; private set; }
     public DateTime? RevokedAtUtc { get; private set; }
+    public Guid? SelectedMembershipId { get; private set; }
+    public string? SelectedRole { get; private set; }
     public byte[] RowVersion { get; private set; } = [];
 
     public static UserSession Create(
@@ -41,5 +43,17 @@ public sealed class UserSession
     public void Revoke(DateTime revokedAtUtc)
     {
         RevokedAtUtc ??= revokedAtUtc;
+    }
+
+    public void SelectPersonalWorkspace()
+    {
+        SelectedMembershipId = null;
+        SelectedRole = null;
+    }
+
+    public void SelectOrganizationWorkspace(Guid membershipId, string role)
+    {
+        SelectedMembershipId = membershipId;
+        SelectedRole = role;
     }
 }

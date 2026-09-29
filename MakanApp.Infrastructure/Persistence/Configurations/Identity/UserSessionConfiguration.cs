@@ -14,6 +14,7 @@ public sealed class UserSessionConfiguration : IEntityTypeConfiguration<UserSess
         builder.Property(session => session.CreatedAtUtc).HasColumnType("datetime2(7)");
         builder.Property(session => session.ExpiresAtUtc).HasColumnType("datetime2(7)");
         builder.Property(session => session.RevokedAtUtc).HasColumnType("datetime2(7)");
+        builder.Property(session => session.SelectedRole).HasMaxLength(16);
         builder.Property(session => session.RowVersion).IsRowVersion();
 
         builder.HasIndex(session => session.TokenHash)

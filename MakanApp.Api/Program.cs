@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Threading.RateLimiting;
+using System.Text.Json.Serialization;
 using MakanApp.Api.Authentication;
 using MakanApp.Api.Errors;
 using MakanApp.Application.Identity;
@@ -10,7 +11,10 @@ using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
 builder.Services
     .AddAuthentication(SessionAuthenticationDefaults.Scheme)
     .AddScheme<AuthenticationSchemeOptions, SessionAuthenticationHandler>(

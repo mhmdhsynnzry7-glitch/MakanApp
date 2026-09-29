@@ -1,4 +1,5 @@
 using MakanApp.Application.Identity;
+using MakanApp.Application.Organization;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,9 +14,16 @@ public sealed class GlobalExceptionHandler(
         Exception exception,
         CancellationToken cancellationToken)
     {
-        var problemDetails = exception is IdentityException identityException
-            ? CreateIdentityProblem(identityException)
-            : CreateUnexpectedProblem(exception, httpContext.TraceIdentifier);
+        var problemDetails = exception switch
+        {
+            IdentityException identityException => CreateKnownProblem(
+                identityException.Code,
+                identityException.Message),
+            OrganizationException organizationException => CreateKnownProblem(
+                organizationException.Code,
+                organizationException.Message),
+            _ => CreateUnexpectedProblem(exception, httpContext.TraceIdentifier)
+        };
 
         httpContext.Response.StatusCode = problemDetails.Status
             ?? StatusCodes.Status500InternalServerError;
@@ -27,9 +35,9 @@ public sealed class GlobalExceptionHandler(
         });
     }
 
-    private static ProblemDetails CreateIdentityProblem(IdentityException exception)
+    private static ProblemDetails CreateKnownProblem(string code, string message)
     {
-        var status = exception.Code switch
+        var status = code switch
         {
             IdentityErrorCodes.AuthRequired => StatusCodes.Status401Unauthorized,
             IdentityErrorCodes.UsernameAlreadyExists => StatusCodes.Status409Conflict,
@@ -38,18 +46,28 @@ public sealed class GlobalExceptionHandler(
             IdentityErrorCodes.OtpTooManyAttempts => StatusCodes.Status429TooManyRequests,
             IdentityErrorCodes.OtpRateLimited => StatusCodes.Status429TooManyRequests,
             IdentityErrorCodes.SmsProviderUnavailable => StatusCodes.Status503ServiceUnavailable,
+            OrganizationErrorCodes.OrganizationNotFound => StatusCodes.Status404NotFound,
+            OrganizationErrorCodes.InvitationNotFound => StatusCodes.Status404NotFound,
+            OrganizationErrorCodes.WorkspaceNotFound => StatusCodes.Status404NotFound,
+            OrganizationErrorCodes.InvitationExpired => StatusCodes.Status410Gone,
+            OrganizationErrorCodes.InvitationRevoked => StatusCodes.Status410Gone,
+            OrganizationErrorCodes.InvitationAlreadyAccepted => StatusCodes.Status409Conflict,
+            OrganizationErrorCodes.MembershipNotActive => StatusCodes.Status403Forbidden,
+            OrganizationErrorCodes.RoleNotActive => StatusCodes.Status403Forbidden,
+            OrganizationErrorCodes.WorkspaceNotAllowed => StatusCodes.Status403Forbidden,
+            OrganizationErrorCodes.ConcurrencyConflict => StatusCodes.Status412PreconditionFailed,
             _ => StatusCodes.Status400BadRequest
         };
 
         return new ProblemDetails
         {
             Status = status,
-            Title = "Identity request failed",
-            Detail = exception.Message,
-            Type = $"urn:makan:problem:{exception.Code.ToLowerInvariant().Replace('_', '-')}",
+            Title = "Request failed",
+            Detail = message,
+            Type = $"urn:makan:problem:{code.ToLowerInvariant().Replace('_', '-')}",
             Extensions =
             {
-                ["code"] = exception.Code
+                ["code"] = code
             }
         };
     }

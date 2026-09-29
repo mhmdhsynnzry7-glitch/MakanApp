@@ -1,7 +1,9 @@
 using System.Security.Cryptography;
 using System.Text;
 using MakanApp.Application.Identity;
+using MakanApp.Application.Organization;
 using MakanApp.Infrastructure.Identity;
+using MakanApp.Infrastructure.Organization;
 using MakanApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -28,6 +30,12 @@ public static class DependencyInjection
 
         services.AddScoped<IIdentityStore, EfIdentityStore>();
         services.AddScoped<IIdentityService, IdentityService>();
+        services.AddScoped<IOrganizationStore, EfOrganizationStore>();
+        services.AddScoped<OrganizationService>();
+        services.AddScoped<IOrganizationService>(serviceProvider =>
+            serviceProvider.GetRequiredService<OrganizationService>());
+        services.AddScoped<IAccessContextResolver>(serviceProvider =>
+            serviceProvider.GetRequiredService<OrganizationService>());
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton(CreateOtpOptions(configuration, environmentName));
         services.AddSingleton(CreateSessionOptions(configuration));

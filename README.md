@@ -79,7 +79,7 @@ ConnectionStrings:MakanDatabase
 dotnet user-secrets set "ConnectionStrings:MakanDatabase" "Server=(localdb)\MSSQLLocalDB;Database=MakanApp;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True" --project MakanApp.Api/MakanApp.Api.csproj
 ~~~
 
-در محیط‌های دیگر مقدار باید از secret store یا `ConnectionStrings__MakanDatabase` تأمین شود. migration با نام `InitialIdentity` در Infrastructure قرار دارد. `Database.EnsureCreated` در برنامه استفاده نمی‌شود و migration هنگام startup اجرا نمی‌شود؛ اعمال migration یک عملیات کنترل‌شده و جداگانه است.
+در محیط‌های دیگر مقدار باید از secret store یا `ConnectionStrings__MakanDatabase` تأمین شود. migrationهای `InitialIdentity` و `AddOrganizationMemberships` در Infrastructure قرار دارند. `Database.EnsureCreated` در برنامه استفاده نمی‌شود و migration هنگام startup اجرا نمی‌شود؛ اعمال migration یک عملیات کنترل‌شده و جداگانه است.
 
 ## API Foundation
 
@@ -116,6 +116,23 @@ OTP با مولد تصادفی رمزنگاری تولید و فقط به‌صو
 
 درخواست OTP علاوه بر محدودیت پایدار مبتنی بر شماره تلفن، policy داخلی ASP.NET Core مبتنی بر IP دارد. policy مبتنی بر IP در این مرحله in-memory و تک-instance است؛ استقرار چند-instance در آینده به rate limiter توزیع‌شده نیاز دارد.
 
+## سازمان، عضویت، دعوت و فضای کاری
+
+مدل‌های `Organization`، `Membership`، `RoleAssignment` و `Invitation` در schema با نام `organization` نگهداری می‌شوند. نقش سازمانی به عضویت تعلق دارد و از چهار مقدار پایدار `Student`، `Teacher`، `Parent` و `Manager` استفاده می‌کند؛ هیچ نقش سراسری روی User ذخیره نمی‌شود.
+
+| متد | مسیر | نیاز به ورود |
+|---|---|---|
+| `GET` | `/api/v1/workspaces/me` | بله |
+| `POST` | `/api/v1/workspaces/select` | بله |
+| `GET` | `/api/v1/workspaces/current` | بله |
+| `GET` | `/api/v1/invitations` | بله |
+| `POST` | `/api/v1/invitations/{invitationId}/accept` | بله |
+| `POST` | `/api/v1/invitations/{invitationId}/decline` | بله |
+
+فضای شخصی مستقل از عضویت سازمانی همیشه در دسترس است. فضای سازمانی فقط از عضویت فعال، سازمان فعال و نقش فعال ساخته می‌شود. انتخاب فضا در همان `UserSession` ثبت می‌شود و در هر resolve مجدداً سمت سرور اعتبارسنجی می‌شود؛ شناسه سازمان یا نقش ارسالی Client به‌تنهایی مجوز نیست.
+
+پذیرش دعوت در transaction با isolation سطح `Serializable` و lockهای SQL Server انجام می‌شود و تکرار پذیرش همان اثر قبلی را برمی‌گرداند. filtered unique indexها از عضویت فعال و نقش فعال تکراری جلوگیری می‌کنند و `rowversion` روی رکوردهای قابل تغییر تعارض stale write را آشکار می‌کند.
+
 برای اعمال migration روی database مجاز و ایزوله:
 
 ~~~powershell
@@ -135,8 +152,8 @@ dotnet build MakanApp.sln --configuration Debug --nologo
 dotnet test MakanApp.sln --configuration Debug --nologo
 ~~~
 
-- Unit Tests قوانین expiration، مصرف، سقف تلاش OTP و normalization شماره تلفن را بررسی می‌کنند.
-- Integration Tests migration واقعی و endpointهای Identity/Profile را روی SQL Server LocalDB اختصاصی `MakanApp_Identity_IntegrationTests_Step3` بررسی و آن database را در پایان حذف می‌کنند؛ EF Core InMemory استفاده نمی‌شود.
+- Unit Tests علاوه بر قواعد Identity، انقضا و idempotency دعوت، چرخه عضویت و استقلال فضای شخصی را بررسی می‌کنند.
+- Integration Tests migration واقعی و endpointهای Identity/Profile/Organization را روی SQL Server LocalDB اختصاصی `MakanApp_Organization_IntegrationTests_Step4` بررسی و آن database را در پایان حذف می‌کنند؛ EF Core InMemory استفاده نمی‌شود.
 - Architecture Tests جهت وابستگی Onion و نبود EF Core/ASP.NET Core در لایه‌های داخلی را enforce می‌کنند.
 
 ## اجرا
@@ -161,4 +178,4 @@ https://localhost:7063/openapi/v1.json
 
 ## محدودیت‌ها
 
-ارسال پیامک واقعی و rate limiting توزیع‌شده هنوز پیاده‌سازی نشده‌اند. Organization، Membership، نقش‌های سازمانی، School، قابلیت‌های آموزشی، Messaging، Copilot، audit، idempotency، outbox و deployment نیز خارج از STEP 3 باقی مانده‌اند.
+ارسال پیامک واقعی و rate limiting توزیع‌شده هنوز پیاده‌سازی نشده‌اند. ایجاد دعوت توسط مدیر و مدیریت عمومی سازمان در API این مرحله ارائه نشده‌اند. `GuardianRelation`، انتخاب فرزند، مدل‌های آموزشی، Messaging، Copilot، audit، outbox و deployment نیز هنوز پیاده‌سازی نشده‌اند.

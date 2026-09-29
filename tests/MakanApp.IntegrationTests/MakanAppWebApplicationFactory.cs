@@ -11,14 +11,14 @@ using Xunit;
 
 namespace MakanApp.IntegrationTests;
 
-public sealed class MakanAppWebApplicationFactory :
+public sealed partial class MakanAppWebApplicationFactory :
     WebApplicationFactory<Program>,
     IAsyncLifetime
 {
     private const string ConnectionStringEnvironmentVariable =
         "ConnectionStrings__MakanDatabase";
 
-    public const string DatabaseName = "MakanApp_Identity_IntegrationTests_Step3";
+    public const string DatabaseName = "MakanApp_Organization_IntegrationTests_Step4";
 
     private const string TestConnectionString =
         "Server=(localdb)\\MSSQLLocalDB;Database=" + DatabaseName + ";Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
