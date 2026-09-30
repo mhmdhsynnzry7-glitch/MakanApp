@@ -1,3 +1,4 @@
+using MakanApp.Application.Academic;
 using MakanApp.Application.Guardian;
 using MakanApp.Application.Identity;
 using MakanApp.Application.Organization;
@@ -17,6 +18,9 @@ public sealed class GlobalExceptionHandler(
     {
         var problemDetails = exception switch
         {
+            AcademicException academicException => CreateKnownProblem(
+                academicException.Code,
+                academicException.Message),
             IdentityException identityException => CreateKnownProblem(
                 identityException.Code,
                 identityException.Message),
@@ -64,6 +68,19 @@ public sealed class GlobalExceptionHandler(
             GuardianErrorCodes.ChildContextNotFound => StatusCodes.Status404NotFound,
             GuardianErrorCodes.ParentRoleRequired => StatusCodes.Status403Forbidden,
             GuardianErrorCodes.ChildContextNotAllowed => StatusCodes.Status403Forbidden,
+            AcademicErrorCodes.AcademicPeriodNotFound => StatusCodes.Status404NotFound,
+            AcademicErrorCodes.CourseNotFound => StatusCodes.Status404NotFound,
+            AcademicErrorCodes.ClassNotFound => StatusCodes.Status404NotFound,
+            AcademicErrorCodes.LearnerNotFound => StatusCodes.Status404NotFound,
+            AcademicErrorCodes.ClassNotActive => StatusCodes.Status409Conflict,
+            AcademicErrorCodes.ClassCapacityExceeded => StatusCodes.Status409Conflict,
+            AcademicErrorCodes.EnrollmentAlreadyActive => StatusCodes.Status409Conflict,
+            AcademicErrorCodes.EnrollmentNotActive => StatusCodes.Status409Conflict,
+            AcademicErrorCodes.TeacherAssignmentAlreadyActive => StatusCodes.Status409Conflict,
+            AcademicErrorCodes.TeacherAssignmentNotActive => StatusCodes.Status409Conflict,
+            AcademicErrorCodes.TeacherNotAllowed => StatusCodes.Status403Forbidden,
+            AcademicErrorCodes.ManagerRoleRequired => StatusCodes.Status403Forbidden,
+            AcademicErrorCodes.AcademicReadNotAllowed => StatusCodes.Status403Forbidden,
             _ => StatusCodes.Status400BadRequest
         };
 

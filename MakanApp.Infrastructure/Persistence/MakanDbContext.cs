@@ -1,3 +1,4 @@
+using MakanApp.Domain.Academic;
 using MakanApp.Domain.Guardian;
 using MakanApp.Domain.Identity;
 using MakanApp.Domain.Organization;
@@ -8,6 +9,11 @@ namespace MakanApp.Infrastructure.Persistence;
 public sealed class MakanDbContext(DbContextOptions<MakanDbContext> options)
     : DbContext(options)
 {
+    public DbSet<AcademicPeriod> AcademicPeriods => Set<AcademicPeriod>();
+    public DbSet<Course> Courses => Set<Course>();
+    public DbSet<MakanApp.Domain.Academic.Class> Classes => Set<MakanApp.Domain.Academic.Class>();
+    public DbSet<Enrollment> Enrollments => Set<Enrollment>();
+    public DbSet<TeacherAssignment> TeacherAssignments => Set<TeacherAssignment>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Person> Persons => Set<Person>();
     public DbSet<UserCredential> UserCredentials => Set<UserCredential>();

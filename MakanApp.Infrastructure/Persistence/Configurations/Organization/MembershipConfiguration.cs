@@ -14,6 +14,11 @@ public sealed class MembershipConfiguration : IEntityTypeConfiguration<Membershi
                 "CK_Memberships_Status",
                 "[Status] IN (1, 2, 3)"));
         builder.HasKey(membership => membership.Id);
+        builder.HasAlternateKey(membership => new
+        {
+            membership.OrganizationId,
+            membership.Id
+        }).HasName("UQ_Memberships_OrganizationId_Id");
         builder.Property(membership => membership.CreatedAtUtc).HasColumnType("datetime2(7)");
         builder.Property(membership => membership.ActivatedAtUtc).HasColumnType("datetime2(7)");
         builder.Property(membership => membership.EndedAtUtc).HasColumnType("datetime2(7)");

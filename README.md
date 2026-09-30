@@ -79,7 +79,7 @@ ConnectionStrings:MakanDatabase
 dotnet user-secrets set "ConnectionStrings:MakanDatabase" "Server=(localdb)\MSSQLLocalDB;Database=MakanApp;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True" --project MakanApp.Api/MakanApp.Api.csproj
 ~~~
 
-در محیط‌های دیگر مقدار باید از secret store یا `ConnectionStrings__MakanDatabase` تأمین شود. migrationهای `InitialIdentity`، `AddOrganizationMemberships` و `AddOrganizationPersons` در Infrastructure قرار دارند. `Database.EnsureCreated` در برنامه استفاده نمی‌شود و migration هنگام startup اجرا نمی‌شود؛ اعمال migration یک عملیات کنترل‌شده و جداگانه است.
+در محیط‌های دیگر مقدار باید از secret store یا `ConnectionStrings__MakanDatabase` تأمین شود. migrationهای `InitialIdentity`، `AddOrganizationMemberships`، `AddOrganizationPersons`، `AddGuardianRelations` و `AddAcademicFoundation` در Infrastructure قرار دارند. `Database.EnsureCreated` در برنامه استفاده نمی‌شود و migration هنگام startup اجرا نمی‌شود؛ اعمال migration یک عملیات کنترل‌شده و جداگانه است.
 
 ## API Foundation
 
@@ -145,6 +145,25 @@ OTP با مولد تصادفی رمزنگاری تولید و فقط به‌صو
 
 در این مرحله endpoint عمومی برای ساخت یا مدیریت `GuardianRelation` وجود ندارد. migration با نام `AddGuardianRelations` جدول `guardian.GuardianRelations`، FK ترکیبی هم‌سازمانی، filtered unique index رابطه فعال و `rowversion` را ایجاد می‌کند. مجوزهای جزئی مشاهده نمره، حضور و غیاب، گزارش و ارتباطات به مرحله‌های بعدی مدل‌های آموزشی موکول شده‌اند.
 
+## زیرساخت آموزشی
+
+مدل‌های `AcademicPeriod`، `Course`، `Class`، `Enrollment` و `TeacherAssignment` در schema با نام `academic` نگهداری می‌شوند. ثبت‌نام به `OrganizationPerson` متصل است تا فراگیر بدون حساب کاربری نیز قابل مدیریت باشد؛ انتساب معلم به `Membership` فعال دارای نقش `Teacher` متصل است. FKهای ترکیبی، هم‌سازمانی بودن منابع را در خود SQL Server enforce می‌کنند و filtered unique indexها از ثبت‌نام فعال یا انتساب فعال تکراری جلوگیری می‌کنند.
+
+عملیات نوشتن این مرحله به فضای سازمانی فعال با نقش `Manager` نیاز دارند. ظرفیت کلاس داخل transaction کوتاه `Serializable` و با lockهای `UPDLOCK, HOLDLOCK` کنترل می‌شود؛ بنابراین درخواست‌های هم‌زمان نمی‌توانند از آخرین صندلی عبور کنند. پایان ثبت‌نام یا انتساب، رکورد تاریخی را حذف یا بازنویسی نمی‌کند.
+
+| متد | مسیر | مجوز |
+|---|---|---|
+| `POST` | `/api/v1/academic/periods` | Manager سازمان فعلی |
+| `POST` | `/api/v1/academic/courses` | Manager سازمان فعلی |
+| `POST` | `/api/v1/academic/classes` | Manager سازمان فعلی |
+| `GET` | `/api/v1/academic/classes` | Manager: سازمان فعلی؛ Teacher: کلاس‌های منتسب؛ Student: کلاس‌های ثبت‌نام‌شده |
+| `POST` | `/api/v1/academic/classes/{classId}/enrollments` | Manager سازمان فعلی |
+| `POST` | `/api/v1/academic/classes/{classId}/enrollments/{enrollmentId}/end` | Manager سازمان فعلی |
+| `POST` | `/api/v1/academic/classes/{classId}/teachers` | Manager سازمان فعلی |
+| `POST` | `/api/v1/academic/classes/{classId}/teachers/{teacherAssignmentId}/end` | Manager سازمان فعلی |
+
+خواندن کلاس‌های فرزند برای نقش `Parent` عمداً در این مرحله ارائه نشده است و تا اضافه‌شدن read model امن مبتنی بر Guardian context با خطای کنترل‌شده رد می‌شود.
+
 برای اعمال migration روی database مجاز و ایزوله:
 
 ~~~powershell
@@ -164,8 +183,8 @@ dotnet build MakanApp.sln --configuration Debug --nologo
 dotnet test MakanApp.sln --configuration Debug --nologo
 ~~~
 
-- Unit Tests علاوه بر قواعد Identity و Organization، lifecycle رکوردهای `OrganizationPerson` و `GuardianRelation` را نیز بررسی می‌کنند.
-- Integration Tests migration واقعی، endpointهای Identity/Profile/Organization/Guardian و قیود SQL Server را روی LocalDB اختصاصی `MakanApp_Guardian_IntegrationTests_Step5A` بررسی و آن database را در پایان حذف می‌کنند؛ EF Core InMemory استفاده نمی‌شود.
+- Unit Tests علاوه بر قواعد Identity و Organization، lifecycle رکوردهای `OrganizationPerson`، `GuardianRelation` و مدل‌های Academic را نیز بررسی می‌کنند.
+- Integration Tests migration واقعی، endpointهای Identity/Profile/Organization/Guardian/Academic، قیود tenant و رقابت ظرفیت کلاس را روی LocalDB اختصاصی `MakanApp_Academic_IntegrationTests_Step5B` بررسی و آن database را در پایان حذف می‌کنند؛ EF Core InMemory استفاده نمی‌شود.
 - Architecture Tests جهت وابستگی Onion و نبود EF Core/ASP.NET Core در لایه‌های داخلی را enforce می‌کنند.
 
 ## اجرا
@@ -190,4 +209,4 @@ https://localhost:7063/openapi/v1.json
 
 ## محدودیت‌ها
 
-ارسال پیامک واقعی و rate limiting توزیع‌شده هنوز پیاده‌سازی نشده‌اند. ایجاد دعوت توسط مدیر، مدیریت عمومی سازمان و مدیریت عمومی `GuardianRelation` در API این مرحله ارائه نشده‌اند. مجوزهای جزئی رابطه سرپرستی، مدل‌های آموزشی، Messaging، Copilot، audit، outbox و deployment نیز هنوز پیاده‌سازی نشده‌اند.
+ارسال پیامک واقعی و rate limiting توزیع‌شده هنوز پیاده‌سازی نشده‌اند. ایجاد دعوت توسط مدیر، مدیریت عمومی سازمان و مدیریت عمومی `GuardianRelation` در API این مرحله ارائه نشده‌اند. خواندن کلاس‌های فرزند برای Parent، Session، Attendance، برنامه تکرارشونده، Assignment، Submission، Exam، Grade، Messaging، Copilot، گزارش‌ها، audit، outbox و deployment نیز هنوز پیاده‌سازی نشده‌اند.
