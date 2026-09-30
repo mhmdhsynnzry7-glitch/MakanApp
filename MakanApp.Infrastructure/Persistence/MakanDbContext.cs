@@ -14,6 +14,10 @@ public sealed class MakanDbContext(DbContextOptions<MakanDbContext> options)
     public DbSet<MakanApp.Domain.Academic.Class> Classes => Set<MakanApp.Domain.Academic.Class>();
     public DbSet<Enrollment> Enrollments => Set<Enrollment>();
     public DbSet<TeacherAssignment> TeacherAssignments => Set<TeacherAssignment>();
+    public DbSet<Session> AcademicSessions => Set<Session>();
+    public DbSet<ScheduleRule> ScheduleRules => Set<ScheduleRule>();
+    public DbSet<Attendance> Attendance => Set<Attendance>();
+    public DbSet<AttendanceRevision> AttendanceRevisions => Set<AttendanceRevision>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Person> Persons => Set<Person>();
     public DbSet<UserCredential> UserCredentials => Set<UserCredential>();

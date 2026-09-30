@@ -81,6 +81,16 @@ public sealed class GlobalExceptionHandler(
             AcademicErrorCodes.TeacherNotAllowed => StatusCodes.Status403Forbidden,
             AcademicErrorCodes.ManagerRoleRequired => StatusCodes.Status403Forbidden,
             AcademicErrorCodes.AcademicReadNotAllowed => StatusCodes.Status403Forbidden,
+            AcademicErrorCodes.ScheduleRuleNotFound => StatusCodes.Status404NotFound,
+            AcademicErrorCodes.SessionNotFound => StatusCodes.Status404NotFound,
+            AcademicErrorCodes.SessionNotActive => StatusCodes.Status409Conflict,
+            AcademicErrorCodes.SessionCancelled => StatusCodes.Status409Conflict,
+            AcademicErrorCodes.SessionTimeConflict => StatusCodes.Status409Conflict,
+            AcademicErrorCodes.ClassSessionConflict => StatusCodes.Status409Conflict,
+            AcademicErrorCodes.TeacherSessionConflict => StatusCodes.Status409Conflict,
+            AcademicErrorCodes.AttendanceNotAllowed => StatusCodes.Status403Forbidden,
+            AcademicErrorCodes.AttendanceAlreadyRecorded => StatusCodes.Status409Conflict,
+            AcademicErrorCodes.AttendanceAlreadyChanged => StatusCodes.Status409Conflict,
             _ => StatusCodes.Status400BadRequest
         };
 

@@ -42,6 +42,8 @@ public static class DependencyInjection
         services.AddScoped<IGuardianService, GuardianService>();
         services.AddScoped<IAcademicStore, EfAcademicStore>();
         services.AddScoped<IAcademicService, AcademicService>();
+        services.AddScoped<IAcademicSessionStore, EfAcademicSessionStore>();
+        services.AddScoped<IAcademicSessionService, AcademicSessionService>();
         services.AddScoped<IAccessContextResolver, GuardianAccessContextResolver>();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton(CreateOtpOptions(configuration, environmentName));

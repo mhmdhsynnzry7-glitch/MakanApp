@@ -13,6 +13,12 @@ public sealed class EnrollmentConfiguration : IEntityTypeConfiguration<Enrollmen
         builder.ToTable("Enrollments", "academic", table =>
             table.HasCheckConstraint("CK_Enrollments_Status", "[Status] IN (1, 2, 3)"));
         builder.HasKey(enrollment => enrollment.Id);
+        builder.HasAlternateKey(enrollment => new
+        {
+            enrollment.OrganizationId,
+            enrollment.ClassId,
+            enrollment.Id
+        }).HasName("UQ_Enrollments_OrganizationId_ClassId_Id");
         builder.Property(enrollment => enrollment.EnrolledAtUtc).HasColumnType("datetime2(7)");
         builder.Property(enrollment => enrollment.EndedAtUtc).HasColumnType("datetime2(7)");
         builder.Property(enrollment => enrollment.RowVersion).IsRowVersion();
