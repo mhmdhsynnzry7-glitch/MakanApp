@@ -13,9 +13,10 @@ public sealed class EfFileAssetStore(MakanDbContext dbContext) : IFileAssetStore
             cancellationToken);
 
     public Task<FileAsset?> GetForUpdateAsync(Guid fileAssetId, CancellationToken cancellationToken) =>
-        dbContext.FileAssets.SingleOrDefaultAsync(
-            fileAsset => fileAsset.Id == fileAssetId,
-            cancellationToken);
+        dbContext.FileAssets
+            .FromSqlInterpolated(
+                $"SELECT * FROM [storage].[FileAssets] WITH (UPDLOCK, HOLDLOCK) WHERE [Id] = {fileAssetId}")
+            .SingleOrDefaultAsync(cancellationToken);
 
     public void Add(FileAsset fileAsset) => dbContext.FileAssets.Add(fileAsset);
 

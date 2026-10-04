@@ -29,6 +29,7 @@ public sealed partial class MakanAppWebApplicationFactory
                 fileAsset.SizeBytes,
                 fileAsset.Sha256Hash,
                 fileAsset.RejectedAtUtc,
+                fileAsset.RetainedAtUtc,
                 fileAsset.UnattachedExpiresAtUtc))
             .SingleAsync();
     }
@@ -102,6 +103,7 @@ public sealed record FileAssetDatabaseRecord(
     long SizeBytes,
     string? Sha256Hash,
     DateTime? RejectedAtUtc,
+    DateTime? RetainedAtUtc,
     DateTime UnattachedExpiresAtUtc);
 
 public sealed class StorageFailureSwitch

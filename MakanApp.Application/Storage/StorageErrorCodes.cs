@@ -11,5 +11,6 @@ public static class StorageErrorCodes
     public const string FileUploadFailed = "FILE_UPLOAD_FAILED";
     public const string FileStorageFailed = "FILE_STORAGE_FAILED";
     public const string FileAlreadyDeleted = "FILE_ALREADY_DELETED";
+    public const string FileInUse = "FILE_IN_USE";
     public const string ConcurrencyConflict = "CONCURRENCY_CONFLICT";
 }

@@ -56,6 +56,7 @@ public sealed class FileAsset
     public DateTime? CompletedAtUtc { get; private set; }
     public DateTime? RejectedAtUtc { get; private set; }
     public DateTime? DeletedAtUtc { get; private set; }
+    public DateTime? RetainedAtUtc { get; private set; }
     public DateTime UnattachedExpiresAtUtc { get; private set; }
     public byte[] RowVersion { get; private set; } = [];
 
@@ -119,5 +120,20 @@ public sealed class FileAsset
 
         DeletedAtUtc = deletedAtUtc;
         Status = FileAssetStatus.Deleted;
+    }
+
+    public void Retain(DateTime retainedAtUtc)
+    {
+        if (Status != FileAssetStatus.Ready)
+        {
+            throw new InvalidOperationException("فقط فایل آماده قابل نگه‌داری تاریخی است.");
+        }
+
+        if (retainedAtUtc.Kind != DateTimeKind.Utc)
+        {
+            throw new ArgumentException("زمان نگه‌داری باید UTC باشد.", nameof(retainedAtUtc));
+        }
+
+        RetainedAtUtc ??= retainedAtUtc;
     }
 }

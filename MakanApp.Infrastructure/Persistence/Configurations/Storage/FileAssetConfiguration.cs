@@ -25,6 +25,9 @@ public sealed class FileAssetConfiguration : IEntityTypeConfiguration<FileAsset>
             table.HasCheckConstraint(
                 "CK_FileAssets_UnattachedExpiry",
                 "[UnattachedExpiresAtUtc] > [CreatedAtUtc]");
+            table.HasCheckConstraint(
+                "CK_FileAssets_RetentionState",
+                "[RetainedAtUtc] IS NULL OR [Status] = 2");
         });
 
         builder.HasKey(fileAsset => fileAsset.Id);
@@ -36,6 +39,7 @@ public sealed class FileAssetConfiguration : IEntityTypeConfiguration<FileAsset>
         builder.Property(fileAsset => fileAsset.CompletedAtUtc).HasColumnType("datetime2(7)");
         builder.Property(fileAsset => fileAsset.RejectedAtUtc).HasColumnType("datetime2(7)");
         builder.Property(fileAsset => fileAsset.DeletedAtUtc).HasColumnType("datetime2(7)");
+        builder.Property(fileAsset => fileAsset.RetainedAtUtc).HasColumnType("datetime2(7)");
         builder.Property(fileAsset => fileAsset.UnattachedExpiresAtUtc).HasColumnType("datetime2(7)");
         builder.Property(fileAsset => fileAsset.RowVersion).IsRowVersion();
 

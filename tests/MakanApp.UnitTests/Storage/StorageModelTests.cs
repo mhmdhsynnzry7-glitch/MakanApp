@@ -102,6 +102,28 @@ public sealed class StorageModelTests
     }
 
     [Fact]
+    public void ReadyFileCanBeRetainedIdempotently()
+    {
+        var file = CreatePending();
+        var retainedAtUtc = DateTime.UtcNow;
+        file.MarkReady(4, new string('A', 64), retainedAtUtc);
+
+        file.Retain(retainedAtUtc);
+        file.Retain(retainedAtUtc.AddMinutes(1));
+
+        Assert.Equal(retainedAtUtc, file.RetainedAtUtc);
+    }
+
+    [Fact]
+    public void NonReadyFileCannotBeRetained()
+    {
+        var file = CreatePending();
+
+        Assert.Throws<InvalidOperationException>(() => file.Retain(DateTime.UtcNow));
+        Assert.Null(file.RetainedAtUtc);
+    }
+
+    [Fact]
     public void UploaderInMatchingPersonalContextCanAccessPersonalFile()
     {
         var userId = Guid.NewGuid();

@@ -26,6 +26,12 @@ public sealed class AssignmentVersionConfiguration : IEntityTypeConfiguration<As
             version.AssignmentId,
             version.Id
         }).HasName("UQ_AssignmentVersions_Organization_Class_Assignment_Id");
+        builder.HasAlternateKey(version => new
+        {
+            version.OrganizationId,
+            version.AssignmentId,
+            version.Id
+        }).HasName("UQ_AssignmentVersions_Organization_Assignment_Id");
         builder.Property(version => version.Title)
             .HasMaxLength(AssignmentVersion.MaximumTitleLength)
             .IsRequired();

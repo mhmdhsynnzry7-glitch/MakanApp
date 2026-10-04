@@ -20,6 +20,7 @@ public sealed record FileAssetResult(
     DateTime CreatedAtUtc,
     DateTime? CompletedAtUtc,
     DateTime? DeletedAtUtc,
+    DateTime? RetainedAtUtc,
     DateTime UnattachedExpiresAtUtc,
     string RowVersion);
 

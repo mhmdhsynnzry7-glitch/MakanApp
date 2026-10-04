@@ -11,6 +11,14 @@ public sealed class AssignmentRecipientConfiguration : IEntityTypeConfiguration<
     {
         builder.ToTable("AssignmentRecipients", "assessment");
         builder.HasKey(recipient => recipient.Id);
+        builder.HasAlternateKey(recipient => new
+        {
+            recipient.OrganizationId,
+            recipient.AssignmentId,
+            recipient.AssignmentVersionId,
+            recipient.EnrollmentId,
+            recipient.Id
+        }).HasName("UQ_AssignmentRecipients_SubmissionScope_Id");
         builder.Property(recipient => recipient.CreatedAtUtc).HasColumnType("datetime2(7)");
         builder.HasIndex(recipient => new
         {

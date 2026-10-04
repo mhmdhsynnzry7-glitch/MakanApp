@@ -104,6 +104,16 @@ public sealed class GlobalExceptionHandler(
             AssessmentErrorCodes.AssignmentNotDraft => StatusCodes.Status409Conflict,
             AssessmentErrorCodes.AssignmentAlreadyPublished => StatusCodes.Status409Conflict,
             AssessmentErrorCodes.TeacherNotAssigned => StatusCodes.Status403Forbidden,
+            AssessmentErrorCodes.SubmissionNotFound => StatusCodes.Status404NotFound,
+            AssessmentErrorCodes.AssignmentRecipientNotFound => StatusCodes.Status404NotFound,
+            AssessmentErrorCodes.SubmissionNotAllowed => StatusCodes.Status403Forbidden,
+            AssessmentErrorCodes.SubmissionFileNotAllowed => StatusCodes.Status403Forbidden,
+            AssessmentErrorCodes.SubmissionNotDraft => StatusCodes.Status409Conflict,
+            AssessmentErrorCodes.SubmissionDeadlinePassed => StatusCodes.Status409Conflict,
+            AssessmentErrorCodes.SubmissionAttemptsExhausted => StatusCodes.Status409Conflict,
+            AssessmentErrorCodes.SubmissionFileNotReady => StatusCodes.Status409Conflict,
+            AssessmentErrorCodes.SubmissionVersionMismatch => StatusCodes.Status409Conflict,
+            AssessmentErrorCodes.AssignmentNotSubmittable => StatusCodes.Status409Conflict,
             StorageErrorCodes.FileNotFound => StatusCodes.Status404NotFound,
             StorageErrorCodes.FileNotReady => StatusCodes.Status409Conflict,
             StorageErrorCodes.FileNotAllowed => StatusCodes.Status403Forbidden,
@@ -112,6 +122,7 @@ public sealed class GlobalExceptionHandler(
             StorageErrorCodes.FileStorageFailed => StatusCodes.Status503ServiceUnavailable,
             StorageErrorCodes.FileUploadFailed => StatusCodes.Status500InternalServerError,
             StorageErrorCodes.FileAlreadyDeleted => StatusCodes.Status409Conflict,
+            StorageErrorCodes.FileInUse => StatusCodes.Status409Conflict,
             _ => StatusCodes.Status400BadRequest
         };
 

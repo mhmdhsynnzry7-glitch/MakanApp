@@ -134,6 +134,11 @@ public sealed class StorageService(
             throw Error(StorageErrorCodes.FileAlreadyDeleted, "فایل قبلاً حذف شده است.");
         }
 
+        if (fileAsset.RetainedAtUtc.HasValue)
+        {
+            throw Error(StorageErrorCodes.FileInUse, "فایل بخشی از یک سابقه رسمی است و قابل حذف نیست.");
+        }
+
         var rowVersion = DecodeRowVersion(expectedRowVersion);
         if (!fileAsset.RowVersion.SequenceEqual(rowVersion))
         {
@@ -243,6 +248,7 @@ public sealed class StorageService(
             fileAsset.CreatedAtUtc,
             fileAsset.CompletedAtUtc,
             fileAsset.DeletedAtUtc,
+            fileAsset.RetainedAtUtc,
             fileAsset.UnattachedExpiresAtUtc,
             Convert.ToBase64String(fileAsset.RowVersion));
 }
