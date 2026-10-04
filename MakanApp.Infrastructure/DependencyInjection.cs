@@ -4,12 +4,14 @@ using MakanApp.Application.Academic;
 using MakanApp.Application.Assessment;
 using MakanApp.Application.Guardian;
 using MakanApp.Application.Identity;
+using MakanApp.Application.Messaging;
 using MakanApp.Application.Organization;
 using MakanApp.Application.Storage;
 using MakanApp.Infrastructure.Academic;
 using MakanApp.Infrastructure.Assessment;
 using MakanApp.Infrastructure.Guardian;
 using MakanApp.Infrastructure.Identity;
+using MakanApp.Infrastructure.Messaging;
 using MakanApp.Infrastructure.Organization;
 using MakanApp.Infrastructure.Storage;
 using MakanApp.Infrastructure.Persistence;
@@ -54,12 +56,16 @@ public static class DependencyInjection
         services.AddScoped<ISubmissionService, SubmissionService>();
         services.AddScoped<IEvaluationStore, EfEvaluationStore>();
         services.AddScoped<IEvaluationService, EvaluationService>();
+        services.AddScoped<IMessagingStore, EfMessagingStore>();
+        services.AddScoped<IMessagingService, MessagingService>();
         services.AddScoped<IFileAssetStore, EfFileAssetStore>();
         services.AddScoped<IStorageService, StorageService>();
         services.AddScoped<IAccessContextResolver, GuardianAccessContextResolver>();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton(CreateOtpOptions(configuration, environmentName));
         services.AddSingleton(CreateSessionOptions(configuration));
+        services.AddSingleton(CreateMessagingOptions(configuration));
+        services.AddSingleton<ICommunicationEligibilityPolicy, CommunicationEligibilityPolicy>();
         var storageOptions = CreateStorageOptions(configuration);
         services.AddSingleton(storageOptions);
         services.AddSingleton<FileUploadPolicy>();
@@ -141,6 +147,32 @@ public static class DependencyInjection
                 configuration,
                 $"{StorageOptions.SectionName}:UnattachedLifetimeHours",
                 24))
+        };
+    }
+
+    private static MessagingOptions CreateMessagingOptions(IConfiguration configuration)
+    {
+        var maximumTextLength = ReadPositiveInt(
+            configuration,
+            $"{MessagingOptions.SectionName}:MaximumTextLength",
+            MakanApp.Domain.Messaging.Message.StorageMaximumTextLength);
+        if (maximumTextLength > MakanApp.Domain.Messaging.Message.StorageMaximumTextLength)
+        {
+            throw new InvalidOperationException(
+                $"Messaging:MaximumTextLength cannot exceed {MakanApp.Domain.Messaging.Message.StorageMaximumTextLength}.");
+        }
+
+        return new MessagingOptions
+        {
+            MaximumTextLength = maximumTextLength,
+            DefaultHistoryLimit = ReadPositiveInt(
+                configuration,
+                $"{MessagingOptions.SectionName}:DefaultHistoryLimit",
+                50),
+            MaximumHistoryLimit = ReadPositiveInt(
+                configuration,
+                $"{MessagingOptions.SectionName}:MaximumHistoryLimit",
+                100)
         };
     }
 

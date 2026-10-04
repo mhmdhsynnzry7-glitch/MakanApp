@@ -16,6 +16,7 @@ public sealed class User
     public Guid? PersonId { get; private set; }
     public string? Username { get; private set; }
     public string? NormalizedUsername { get; private set; }
+    public CommunicationAgeCategory CommunicationAgeCategory { get; private set; }
     public DateTime? ProfileCompletedAtUtc { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime? UpdatedAtUtc { get; private set; }
@@ -26,6 +27,19 @@ public sealed class User
 
     public static User Create(DateTime createdAtUtc) =>
         new(Guid.NewGuid(), createdAtUtc);
+
+    public void SetCommunicationAgeCategory(
+        CommunicationAgeCategory communicationAgeCategory,
+        DateTime updatedAtUtc)
+    {
+        if (!Enum.IsDefined(communicationAgeCategory))
+        {
+            throw new ArgumentOutOfRangeException(nameof(communicationAgeCategory));
+        }
+
+        CommunicationAgeCategory = communicationAgeCategory;
+        UpdatedAtUtc = updatedAtUtc;
+    }
 
     public void SetProfile(
         Guid personId,

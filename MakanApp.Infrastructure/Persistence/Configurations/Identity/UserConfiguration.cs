@@ -8,7 +8,10 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
 {
     public void Configure(EntityTypeBuilder<User> builder)
     {
-        builder.ToTable("Users", "identity");
+        builder.ToTable("Users", "identity", table =>
+            table.HasCheckConstraint(
+                "CK_Users_CommunicationAgeCategory",
+                "[CommunicationAgeCategory] IN (0, 1, 2)"));
         builder.HasKey(user => user.Id);
         builder.Property(user => user.Username).HasMaxLength(32);
         builder.Property(user => user.NormalizedUsername).HasMaxLength(32);

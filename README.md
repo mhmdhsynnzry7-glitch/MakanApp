@@ -79,7 +79,7 @@ ConnectionStrings:MakanDatabase
 dotnet user-secrets set "ConnectionStrings:MakanDatabase" "Server=(localdb)\MSSQLLocalDB;Database=MakanApp;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True" --project MakanApp.Api/MakanApp.Api.csproj
 ~~~
 
-در محیط‌های دیگر مقدار باید از secret store یا `ConnectionStrings__MakanDatabase` تأمین شود. migrationهای `InitialIdentity`، `AddOrganizationMemberships`، `AddOrganizationPersons`، `AddGuardianRelations` و `AddAcademicFoundation` در Infrastructure قرار دارند. `Database.EnsureCreated` در برنامه استفاده نمی‌شود و migration هنگام startup اجرا نمی‌شود؛ اعمال migration یک عملیات کنترل‌شده و جداگانه است.
+در محیط‌های دیگر مقدار باید از secret store یا `ConnectionStrings__MakanDatabase` تأمین شود. migrationهای نسخه‌بندی‌شده در Infrastructure قرار دارند و `AddDirectMessagingFoundation` جدیدترین migration زیرساخت Messaging است. `Database.EnsureCreated` در برنامه استفاده نمی‌شود و migration هنگام startup اجرا نمی‌شود؛ اعمال migration یک عملیات کنترل‌شده و جداگانه است.
 
 ## API Foundation
 
@@ -183,6 +183,21 @@ OTP با مولد تصادفی رمزنگاری تولید و فقط به‌صو
 
 سه داده `LearnerFeedback`، `GuardianVisibleFeedback` و `TeacherPrivateNote` قراردادهای جدا دارند. DTO دانش‌آموز فقط بازخورد دانش‌آموز و DTO والد فقط بازخورد مجاز والد را دارد؛ `TeacherPrivateNote` در هیچ‌کدام serialize نمی‌شود.
 
+## پیام‌رسانی مستقیم
+
+ماژول `Messaging` زیرساخت پایدار گفت‌وگوی مستقیم دو `User` را در Scope شخصی یا سازمانی فراهم می‌کند. زوج کاربران به شکل canonical ذخیره می‌شود؛ بنابراین A+B و B+A در Scope یکسان یک Conversation هستند. Scope سازمانی فقط از `AccessContext` معتبر نشست تعیین می‌شود و Client نمی‌تواند `OrganizationId` را به‌عنوان مجوز تحمیل کند.
+
+شروع تماس Personal فقط برای دو حساب Adult با `PersonalCommunicationGrant` فعال مجاز است. ارتباط سازمانی نیز بر Membership و Role فعال و در نقش‌های آموزشی بر Enrollment، TeacherAssignment و GuardianRelation معتبر متکی است. شماره تلفن در پاسخ‌های Messaging وجود ندارد و رد مخاطب محافظت‌شده با خطای عمومی انجام می‌شود. جزئیات کامل policy در `docs/architecture/STEP_7A_DIRECT_MESSAGING_FOUNDATION.md` ثبت شده است.
+
+| متد | مسیر | کاربرد |
+|---|---|---|
+| `POST` | `/api/v1/conversations/direct` | ساخت یا resolve گفت‌وگوی مستقیم |
+| `GET` | `/api/v1/conversations` | فهرست گفت‌وگوهای مجاز User |
+| `GET` | `/api/v1/conversations/{conversationId}/messages` | تاریخچه پایدار بر اساس Sequence |
+| `POST` | `/api/v1/conversations/{conversationId}/messages` | ارسال پایدار و retry-safe پیام متن |
+
+`ClientMessageId` همراه با Conversation و Sender کلید idempotency است. retry با محتوای یکسان همان receipt را برمی‌گرداند و استفاده از همان شناسه برای متن متفاوت رد می‌شود. `Sequence` و `SentAtUtc` سمت سرور و داخل transaction SQL Server تخصیص می‌یابند. `Sent` فقط commit موفق در SQL Server است؛ Delivered/Seen، فایل، Group/Channel و SignalR هنوز پیاده‌سازی نشده‌اند.
+
 برای اعمال migration روی database مجاز و ایزوله:
 
 ~~~powershell
@@ -202,8 +217,8 @@ dotnet build MakanApp.sln --configuration Debug --nologo
 dotnet test MakanApp.sln --configuration Debug --nologo
 ~~~
 
-- Unit Tests علاوه بر قواعد Identity و Organization، lifecycle رکوردهای `OrganizationPerson`، `GuardianRelation`، مدل‌های Academic و قواعد `AssignmentVersion`/`EvaluationRevision` را بررسی می‌کنند.
-- Integration Tests migration واقعی، endpointهای Identity/Profile/Organization/Guardian/Academic/Assessment، حریم خصوصی نمره، tenant isolation و concurrency را روی LocalDB اختصاصی `MakanApp_Evaluation_IntegrationTests_Step6D` بررسی و آن database را در پایان حذف می‌کنند؛ EF Core InMemory استفاده نمی‌شود.
+- Unit Tests علاوه بر قواعد Identity و Organization، lifecycle رکوردهای `OrganizationPerson` و `GuardianRelation`، مدل‌های Academic/Assessment و قواعد Domain و eligibility در Messaging را بررسی می‌کنند.
+- Integration Tests migration واقعی، endpointهای Identity/Profile/Organization/Guardian/Academic/Assessment/Messaging، حریم خصوصی، tenant isolation، idempotency و concurrency را روی LocalDB اختصاصی `MakanApp_Messaging_IntegrationTests_Step7A` بررسی و آن database را در پایان حذف می‌کنند؛ EF Core InMemory استفاده نمی‌شود.
 - Architecture Tests جهت وابستگی Onion و نبود EF Core/ASP.NET Core در لایه‌های داخلی را enforce می‌کنند.
 
 ## اجرا
@@ -228,4 +243,4 @@ https://localhost:7063/openapi/v1.json
 
 ## محدودیت‌ها
 
-ارسال پیامک واقعی و rate limiting توزیع‌شده هنوز پیاده‌سازی نشده‌اند. ایجاد دعوت توسط مدیر، مدیریت عمومی سازمان و مدیریت عمومی `GuardianRelation` در API ارائه نشده‌اند. Rubric ساختاریافته، بازگرداندن صریح پاسخ برای revision، Exam، Intelligence/LearningEvidence، Notification delivery، Messaging، Copilot، گزارش‌ها، audit، outbox و deployment هنوز پیاده‌سازی نشده‌اند.
+ارسال پیامک واقعی و rate limiting توزیع‌شده هنوز پیاده‌سازی نشده‌اند. ایجاد دعوت توسط مدیر، مدیریت عمومی سازمان و مدیریت عمومی `GuardianRelation` در API ارائه نشده‌اند. Rubric ساختاریافته، بازگرداندن صریح پاسخ برای revision، Exam، Intelligence/LearningEvidence، Notification delivery، Group/Channel و attachment/realtime در Messaging، Copilot، گزارش‌ها، audit، outbox و deployment هنوز پیاده‌سازی نشده‌اند.

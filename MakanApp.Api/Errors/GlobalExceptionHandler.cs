@@ -2,6 +2,7 @@ using MakanApp.Application.Academic;
 using MakanApp.Application.Assessment;
 using MakanApp.Application.Guardian;
 using MakanApp.Application.Identity;
+using MakanApp.Application.Messaging;
 using MakanApp.Application.Organization;
 using MakanApp.Application.Storage;
 using Microsoft.AspNetCore.Diagnostics;
@@ -29,6 +30,9 @@ public sealed class GlobalExceptionHandler(
             IdentityException identityException => CreateKnownProblem(
                 identityException.Code,
                 identityException.Message),
+            MessagingException messagingException => CreateKnownProblem(
+                messagingException.Code,
+                messagingException.Message),
             OrganizationException organizationException => CreateKnownProblem(
                 organizationException.Code,
                 organizationException.Message),
@@ -62,6 +66,14 @@ public sealed class GlobalExceptionHandler(
             IdentityErrorCodes.OtpTooManyAttempts => StatusCodes.Status429TooManyRequests,
             IdentityErrorCodes.OtpRateLimited => StatusCodes.Status429TooManyRequests,
             IdentityErrorCodes.SmsProviderUnavailable => StatusCodes.Status503ServiceUnavailable,
+            MessagingErrorCodes.ConversationNotFound => StatusCodes.Status404NotFound,
+            MessagingErrorCodes.DirectRecipientNotAvailable => StatusCodes.Status404NotFound,
+            MessagingErrorCodes.ConversationNotAllowed => StatusCodes.Status403Forbidden,
+            MessagingErrorCodes.MessageNotAllowed => StatusCodes.Status403Forbidden,
+            MessagingErrorCodes.ParticipantNotActive => StatusCodes.Status403Forbidden,
+            MessagingErrorCodes.OrganizationScopeMismatch => StatusCodes.Status403Forbidden,
+            MessagingErrorCodes.DirectConversationConflict => StatusCodes.Status409Conflict,
+            MessagingErrorCodes.MessageIdempotencyConflict => StatusCodes.Status409Conflict,
             OrganizationErrorCodes.OrganizationNotFound => StatusCodes.Status404NotFound,
             OrganizationErrorCodes.InvitationNotFound => StatusCodes.Status404NotFound,
             OrganizationErrorCodes.WorkspaceNotFound => StatusCodes.Status404NotFound,

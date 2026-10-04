@@ -2,6 +2,7 @@ using MakanApp.Domain.Academic;
 using MakanApp.Domain.Assessment;
 using MakanApp.Domain.Guardian;
 using MakanApp.Domain.Identity;
+using MakanApp.Domain.Messaging;
 using MakanApp.Domain.Organization;
 using MakanApp.Domain.Storage;
 using Microsoft.EntityFrameworkCore;
@@ -32,6 +33,11 @@ public sealed class MakanDbContext(DbContextOptions<MakanDbContext> options)
     public DbSet<UserCredential> UserCredentials => Set<UserCredential>();
     public DbSet<OtpChallenge> OtpChallenges => Set<OtpChallenge>();
     public DbSet<UserSession> UserSessions => Set<UserSession>();
+    public DbSet<Conversation> Conversations => Set<Conversation>();
+    public DbSet<ConversationParticipant> ConversationParticipants => Set<ConversationParticipant>();
+    public DbSet<Message> Messages => Set<Message>();
+    public DbSet<PersonalCommunicationGrant> PersonalCommunicationGrants =>
+        Set<PersonalCommunicationGrant>();
     public DbSet<GuardianRelation> GuardianRelations => Set<GuardianRelation>();
     public DbSet<MakanApp.Domain.Organization.Organization> Organizations => Set<MakanApp.Domain.Organization.Organization>();
     public DbSet<OrganizationPerson> OrganizationPersons => Set<OrganizationPerson>();
