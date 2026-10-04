@@ -3,6 +3,7 @@ using MakanApp.Domain.Assessment;
 using MakanApp.Domain.Guardian;
 using MakanApp.Domain.Identity;
 using MakanApp.Domain.Organization;
+using MakanApp.Domain.Storage;
 using Microsoft.EntityFrameworkCore;
 
 namespace MakanApp.Infrastructure.Persistence;
@@ -33,6 +34,7 @@ public sealed class MakanDbContext(DbContextOptions<MakanDbContext> options)
     public DbSet<Membership> Memberships => Set<Membership>();
     public DbSet<RoleAssignment> RoleAssignments => Set<RoleAssignment>();
     public DbSet<Invitation> Invitations => Set<Invitation>();
+    public DbSet<FileAsset> FileAssets => Set<FileAsset>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -1,12 +1,16 @@
 using MakanApp.Application.Identity;
+using MakanApp.Application.Storage;
 using MakanApp.Domain.Identity;
 using MakanApp.Infrastructure.Identity;
 using MakanApp.Infrastructure.Persistence;
+using MakanApp.Infrastructure.Storage;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Xunit;
 
 namespace MakanApp.IntegrationTests;
@@ -18,13 +22,18 @@ public sealed partial class MakanAppWebApplicationFactory :
     private const string ConnectionStringEnvironmentVariable =
         "ConnectionStrings__MakanDatabase";
 
-    public const string DatabaseName = "MakanApp_Assignments_IntegrationTests_Step6A";
+    public const string DatabaseName = "MakanApp_Storage_IntegrationTests_Step6B";
 
     private const string TestConnectionString =
         "Server=(localdb)\\MSSQLLocalDB;Database=" + DatabaseName + ";Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
 
     private readonly string? _originalConnectionString =
         Environment.GetEnvironmentVariable(ConnectionStringEnvironmentVariable);
+
+    public string StorageRootPath { get; } = Path.Combine(
+        Path.GetTempPath(),
+        "MakanApp-StorageTests",
+        Guid.NewGuid().ToString("N"));
 
     public MakanAppWebApplicationFactory()
     {
@@ -40,8 +49,34 @@ public sealed partial class MakanAppWebApplicationFactory :
         {
             configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["ConnectionStrings:MakanDatabase"] = TestConnectionString
+                ["ConnectionStrings:MakanDatabase"] = TestConnectionString,
+                ["Storage:RootPath"] = StorageRootPath,
+                ["Storage:MaxFileSizeBytes"] = "1024",
+                ["Storage:UnattachedLifetimeHours"] = "1",
+                ["Storage:AllowedContentTypes:0"] = "text/plain",
+                ["Storage:AllowedContentTypes:1"] = "application/pdf"
             });
+        });
+        builder.ConfigureTestServices(services =>
+        {
+            services.RemoveAll<StorageOptions>();
+            services.AddSingleton(new StorageOptions
+            {
+                RootPath = StorageRootPath,
+                MaxFileSizeBytes = 1024,
+                UnattachedLifetime = TimeSpan.FromHours(1),
+                AllowedContentTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "text/plain",
+                    "application/pdf"
+                }
+            });
+            services.AddSingleton<StorageFailureSwitch>();
+            services.RemoveAll<IFileStorage>();
+            services.AddSingleton<IFileStorage>(serviceProvider =>
+                new FaultInjectingFileStorage(
+                    serviceProvider.GetRequiredService<LocalFileStorage>(),
+                    serviceProvider.GetRequiredService<StorageFailureSwitch>()));
         });
     }
 
@@ -64,9 +99,28 @@ public sealed partial class MakanAppWebApplicationFactory :
         }
         finally
         {
-            Environment.SetEnvironmentVariable(
-                ConnectionStringEnvironmentVariable,
-                _originalConnectionString);
+            try
+            {
+                DeleteStorageRoot();
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable(
+                    ConnectionStringEnvironmentVariable,
+                    _originalConnectionString);
+            }
+        }
+    }
+
+    private void DeleteStorageRoot()
+    {
+        var expectedParent = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "MakanApp-StorageTests"))
+            .TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        var resolvedRoot = Path.GetFullPath(StorageRootPath);
+        if (resolvedRoot.StartsWith(expectedParent, StringComparison.OrdinalIgnoreCase) &&
+            Directory.Exists(resolvedRoot))
+        {
+            Directory.Delete(resolvedRoot, true);
         }
     }
 

@@ -4,8 +4,10 @@ using System.Text.Json.Serialization;
 using MakanApp.Api.Authentication;
 using MakanApp.Api.Errors;
 using MakanApp.Application.Identity;
+using MakanApp.Application.Storage;
 using MakanApp.Infrastructure;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -70,6 +72,10 @@ builder.Services.AddHealthChecks();
 builder.Services.AddInfrastructure(
     builder.Configuration,
     builder.Environment.EnvironmentName);
+builder.Services.AddOptions<FormOptions>().Configure<StorageOptions>((formOptions, storageOptions) =>
+{
+    formOptions.MultipartBodyLengthLimit = checked(storageOptions.MaxFileSizeBytes + 65_536);
+});
 
 var app = builder.Build();
 

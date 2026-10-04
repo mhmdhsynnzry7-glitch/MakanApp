@@ -3,6 +3,7 @@ using MakanApp.Application.Assessment;
 using MakanApp.Application.Guardian;
 using MakanApp.Application.Identity;
 using MakanApp.Application.Organization;
+using MakanApp.Application.Storage;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -34,6 +35,9 @@ public sealed class GlobalExceptionHandler(
             GuardianException guardianException => CreateKnownProblem(
                 guardianException.Code,
                 guardianException.Message),
+            StorageException storageException => CreateKnownProblem(
+                storageException.Code,
+                storageException.Message),
             _ => CreateUnexpectedProblem(exception, httpContext.TraceIdentifier)
         };
 
@@ -100,6 +104,14 @@ public sealed class GlobalExceptionHandler(
             AssessmentErrorCodes.AssignmentNotDraft => StatusCodes.Status409Conflict,
             AssessmentErrorCodes.AssignmentAlreadyPublished => StatusCodes.Status409Conflict,
             AssessmentErrorCodes.TeacherNotAssigned => StatusCodes.Status403Forbidden,
+            StorageErrorCodes.FileNotFound => StatusCodes.Status404NotFound,
+            StorageErrorCodes.FileNotReady => StatusCodes.Status409Conflict,
+            StorageErrorCodes.FileNotAllowed => StatusCodes.Status403Forbidden,
+            StorageErrorCodes.FileTooLarge => StatusCodes.Status413PayloadTooLarge,
+            StorageErrorCodes.FileTypeNotAllowed => StatusCodes.Status415UnsupportedMediaType,
+            StorageErrorCodes.FileStorageFailed => StatusCodes.Status503ServiceUnavailable,
+            StorageErrorCodes.FileUploadFailed => StatusCodes.Status500InternalServerError,
+            StorageErrorCodes.FileAlreadyDeleted => StatusCodes.Status409Conflict,
             _ => StatusCodes.Status400BadRequest
         };
 

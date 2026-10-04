@@ -5,11 +5,13 @@ using MakanApp.Application.Assessment;
 using MakanApp.Application.Guardian;
 using MakanApp.Application.Identity;
 using MakanApp.Application.Organization;
+using MakanApp.Application.Storage;
 using MakanApp.Infrastructure.Academic;
 using MakanApp.Infrastructure.Assessment;
 using MakanApp.Infrastructure.Guardian;
 using MakanApp.Infrastructure.Identity;
 using MakanApp.Infrastructure.Organization;
+using MakanApp.Infrastructure.Storage;
 using MakanApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -48,10 +50,15 @@ public static class DependencyInjection
         services.AddScoped<IAcademicSessionService, AcademicSessionService>();
         services.AddScoped<IAssignmentStore, EfAssignmentStore>();
         services.AddScoped<IAssignmentService, AssignmentService>();
+        services.AddScoped<IFileAssetStore, EfFileAssetStore>();
+        services.AddScoped<IStorageService, StorageService>();
         services.AddScoped<IAccessContextResolver, GuardianAccessContextResolver>();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton(CreateOtpOptions(configuration, environmentName));
         services.AddSingleton(CreateSessionOptions(configuration));
+        var storageOptions = CreateStorageOptions(configuration);
+        services.AddSingleton(storageOptions);
+        services.AddSingleton<FileUploadPolicy>();
         services.AddSingleton<IIdentitySecurity>(
             new IdentityCryptography(CreateSecurityKey(configuration, environmentName)));
 
@@ -59,10 +66,14 @@ public static class DependencyInjection
         {
             services.AddSingleton<DevelopmentOtpStore>();
             services.AddSingleton<ISmsSender, DevelopmentSmsSender>();
+            services.AddSingleton<LocalFileStorage>();
+            services.AddSingleton<IFileStorage>(serviceProvider =>
+                serviceProvider.GetRequiredService<LocalFileStorage>());
         }
         else
         {
             services.AddSingleton<ISmsSender, UnavailableSmsSender>();
+            services.AddSingleton<IFileStorage, UnavailableFileStorage>();
         }
 
         return services;
@@ -102,6 +113,33 @@ public static class DependencyInjection
             2_592_000))
     };
 
+    private static StorageOptions CreateStorageOptions(IConfiguration configuration)
+    {
+        var configuredTypes = configuration
+            .GetSection($"{StorageOptions.SectionName}:AllowedContentTypes")
+            .GetChildren()
+            .Select(item => item.Value)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!.Trim().ToLowerInvariant())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        return new StorageOptions
+        {
+            RootPath = configuration[$"{StorageOptions.SectionName}:RootPath"] ?? string.Empty,
+            MaxFileSizeBytes = ReadPositiveLong(
+                configuration,
+                $"{StorageOptions.SectionName}:MaxFileSizeBytes",
+                10 * 1024 * 1024),
+            AllowedContentTypes = configuredTypes.Count > 0
+                ? configuredTypes
+                : new StorageOptions().AllowedContentTypes,
+            UnattachedLifetime = TimeSpan.FromHours(ReadPositiveInt(
+                configuration,
+                $"{StorageOptions.SectionName}:UnattachedLifetimeHours",
+                24))
+        };
+    }
+
     private static byte[] CreateSecurityKey(
         IConfiguration configuration,
         string environmentName)
@@ -135,6 +173,15 @@ public static class DependencyInjection
     {
         var value = configuration[key];
         return int.TryParse(value, out var parsed) && parsed > 0 ? parsed : fallback;
+    }
+
+    private static long ReadPositiveLong(
+        IConfiguration configuration,
+        string key,
+        long fallback)
+    {
+        var value = configuration[key];
+        return long.TryParse(value, out var parsed) && parsed > 0 ? parsed : fallback;
     }
 
     private static bool IsDevelopmentLike(string environmentName) =>
