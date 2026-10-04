@@ -68,6 +68,7 @@ public sealed partial class AssignmentEndpointsTests
                 DateTime.UtcNow.AddDays(5),
                 true,
                 3,
+                25m,
                 draft.AssignmentRowVersion,
                 draft.VersionRowVersion),
             JsonOptions);
@@ -77,6 +78,7 @@ public sealed partial class AssignmentEndpointsTests
         Assert.Equal("تمرین ویرایش‌شده", updated.Title);
         Assert.True(updated.AllowLateSubmission);
         Assert.Equal(3, updated.MaxAttempts);
+        Assert.Equal(25m, updated.MaxScore);
         Assert.NotEqual(draft.AssignmentRowVersion, updated.AssignmentRowVersion);
         Assert.NotEqual(draft.VersionRowVersion, updated.VersionRowVersion);
     }
@@ -132,6 +134,24 @@ public sealed partial class AssignmentEndpointsTests
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal(
             AssessmentErrorCodes.AssignmentAttemptsInvalid,
+            await ReadProblemCodeAsync(response));
+    }
+
+    [Fact]
+    public async Task DraftRejectsNonPositiveMaxScore()
+    {
+        using var client = _factory.CreateClient();
+        var manager = await CreateManagerAsync(client);
+        var academicClass = await _factory.CreateAcademicClassAsync(manager.OrganizationId);
+
+        using var response = await client.PostAsJsonAsync(
+            $"/api/v1/academic/classes/{academicClass.ClassId}/assignments",
+            NewDraftCommand(maxScore: 0m),
+            JsonOptions);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(
+            AssessmentErrorCodes.AssignmentMaxScoreInvalid,
             await ReadProblemCodeAsync(response));
     }
 
@@ -226,6 +246,7 @@ public sealed partial class AssignmentEndpointsTests
                 DueAtUtc = DateTime.UtcNow.AddDays(3),
                 AllowLateSubmission = false,
                 MaxAttempts = 1,
+                MaxScore = 20m,
                 OrganizationId = otherOrganizationId,
                 MembershipId = Guid.NewGuid(),
                 Role = OrganizationRole.Teacher,
@@ -480,13 +501,15 @@ public sealed partial class AssignmentEndpointsTests
     private static CreateAssignmentDraftCommand NewDraftCommand(
         string title = "تمرین فصل اول",
         DateTime? dueAtUtc = null,
-        int maxAttempts = 2) =>
+        int maxAttempts = 2,
+        decimal maxScore = 20m) =>
         new(
             title,
             "صورت تمرین فصل اول",
             dueAtUtc ?? DateTime.UtcNow.AddDays(3),
             false,
-            maxAttempts);
+            maxAttempts,
+            maxScore);
 
     private static UpdateAssignmentDraftCommand NewUpdateCommand(AssignmentResult assignment) =>
         new(
@@ -495,6 +518,7 @@ public sealed partial class AssignmentEndpointsTests
             assignment.DueAtUtc,
             assignment.AllowLateSubmission,
             assignment.MaxAttempts,
+            assignment.MaxScore,
             assignment.AssignmentRowVersion,
             assignment.VersionRowVersion);
 

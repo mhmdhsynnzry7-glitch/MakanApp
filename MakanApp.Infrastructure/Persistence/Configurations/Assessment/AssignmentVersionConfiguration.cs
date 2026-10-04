@@ -13,6 +13,7 @@ public sealed class AssignmentVersionConfiguration : IEntityTypeConfiguration<As
         {
             table.HasCheckConstraint("CK_AssignmentVersions_VersionNumber", "[VersionNumber] > 0");
             table.HasCheckConstraint("CK_AssignmentVersions_MaxAttempts", "[MaxAttempts] > 0");
+            table.HasCheckConstraint("CK_AssignmentVersions_MaxScore", "[MaxScore] > 0");
             table.HasCheckConstraint("CK_AssignmentVersions_DueAt", "[DueAtUtc] > [CreatedAtUtc]");
             table.HasCheckConstraint(
                 "CK_AssignmentVersions_PublishedDueAt",
@@ -38,6 +39,7 @@ public sealed class AssignmentVersionConfiguration : IEntityTypeConfiguration<As
         builder.Property(version => version.Description)
             .HasMaxLength(AssignmentVersion.MaximumDescriptionLength)
             .IsRequired();
+        builder.Property(version => version.MaxScore).HasPrecision(9, 2);
         builder.Property(version => version.DueAtUtc).HasColumnType("datetime2(7)");
         builder.Property(version => version.CreatedAtUtc).HasColumnType("datetime2(7)");
         builder.Property(version => version.PublishedAtUtc).HasColumnType("datetime2(7)");

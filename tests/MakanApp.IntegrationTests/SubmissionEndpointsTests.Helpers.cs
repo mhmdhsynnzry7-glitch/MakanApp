@@ -15,6 +15,7 @@ public sealed partial class AssignmentEndpointsTests
         HttpClient managerClient,
         HttpClient studentClient,
         int maxAttempts = 2,
+        decimal maxScore = 20m,
         bool allowLateSubmission = false,
         bool studentIsRecipient = true)
     {
@@ -36,7 +37,8 @@ public sealed partial class AssignmentEndpointsTests
                 "Submission lifecycle test",
                 DateTime.UtcNow.AddDays(2),
                 allowLateSubmission,
-                maxAttempts),
+                maxAttempts,
+                maxScore),
             JsonOptions);
         createResponse.EnsureSuccessStatusCode();
         var draft = await ReadRequiredAsync<AssignmentResult>(createResponse);
@@ -125,7 +127,7 @@ public sealed partial class AssignmentEndpointsTests
         Guid membershipId) =>
         await SelectWorkspaceAsync(client, membershipId, OrganizationRole.Student);
 
-    private async Task CreateParentForStudentAsync(
+    private async Task<ParentContext> CreateParentForStudentAsync(
         HttpClient parentClient,
         SubmissionScenario scenario)
     {
@@ -134,7 +136,7 @@ public sealed partial class AssignmentEndpointsTests
             user.User.Id,
             scenario.OrganizationId,
             OrganizationRole.Parent);
-        _ = await _factory.CreateGuardianRelationAsync(
+        var relationId = await _factory.CreateGuardianRelationAsync(
             user.User.Id,
             scenario.OrganizationId,
             scenario.Student.OrganizationPersonId);
@@ -144,6 +146,12 @@ public sealed partial class AssignmentEndpointsTests
             membership.MembershipId,
             OrganizationRole.Parent);
         await SelectChildAsync(parentClient, scenario.Student.OrganizationPersonId);
+        return new ParentContext(
+            user.User.Id,
+            membership.MembershipId,
+            scenario.Student.OrganizationPersonId,
+            relationId,
+            scenario.Student.EnrollmentId);
     }
 
     private sealed record SubmissionScenario(

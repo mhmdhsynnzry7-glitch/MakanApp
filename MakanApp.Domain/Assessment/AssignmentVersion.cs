@@ -4,6 +4,7 @@ public sealed class AssignmentVersion
 {
     public const int MaximumTitleLength = 200;
     public const int MaximumDescriptionLength = 10_000;
+    public const decimal MaximumScoreValue = 9_999_999.99m;
 
     private AssignmentVersion()
     {
@@ -20,6 +21,7 @@ public sealed class AssignmentVersion
         DateTime dueAtUtc,
         bool allowLateSubmission,
         int maxAttempts,
+        decimal maxScore,
         Guid createdByMembershipId,
         DateTime createdAtUtc)
     {
@@ -33,6 +35,7 @@ public sealed class AssignmentVersion
         DueAtUtc = dueAtUtc;
         AllowLateSubmission = allowLateSubmission;
         MaxAttempts = maxAttempts;
+        MaxScore = maxScore;
         CreatedByMembershipId = createdByMembershipId;
         CreatedAtUtc = createdAtUtc;
     }
@@ -47,6 +50,7 @@ public sealed class AssignmentVersion
     public DateTime DueAtUtc { get; private set; }
     public bool AllowLateSubmission { get; private set; }
     public int MaxAttempts { get; private set; }
+    public decimal MaxScore { get; private set; }
     public Guid CreatedByMembershipId { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime? PublishedAtUtc { get; private set; }
@@ -64,10 +68,11 @@ public sealed class AssignmentVersion
         DateTime dueAtUtc,
         bool allowLateSubmission,
         int maxAttempts,
+        decimal maxScore,
         Guid createdByMembershipId,
         DateTime createdAtUtc)
     {
-        Validate(title, description, dueAtUtc, maxAttempts, createdAtUtc);
+        Validate(title, description, dueAtUtc, maxAttempts, maxScore, createdAtUtc);
         return new AssignmentVersion(
             Guid.NewGuid(),
             organizationId,
@@ -79,6 +84,7 @@ public sealed class AssignmentVersion
             dueAtUtc,
             allowLateSubmission,
             maxAttempts,
+            maxScore,
             createdByMembershipId,
             createdAtUtc);
     }
@@ -89,6 +95,7 @@ public sealed class AssignmentVersion
         DateTime dueAtUtc,
         bool allowLateSubmission,
         int maxAttempts,
+        decimal maxScore,
         DateTime nowUtc)
     {
         if (IsPublished)
@@ -96,12 +103,13 @@ public sealed class AssignmentVersion
             throw new InvalidOperationException("نسخه منتشرشده تکلیف قابل ویرایش نیست.");
         }
 
-        Validate(title, description, dueAtUtc, maxAttempts, nowUtc);
+        Validate(title, description, dueAtUtc, maxAttempts, maxScore, nowUtc);
         Title = title.Trim();
         Description = description.Trim();
         DueAtUtc = dueAtUtc;
         AllowLateSubmission = allowLateSubmission;
         MaxAttempts = maxAttempts;
+        MaxScore = maxScore;
     }
 
     public void Publish(DateTime publishedAtUtc)
@@ -124,6 +132,7 @@ public sealed class AssignmentVersion
         string description,
         DateTime dueAtUtc,
         int maxAttempts,
+        decimal maxScore,
         DateTime nowUtc)
     {
         var normalizedTitle = title?.Trim();
@@ -147,6 +156,15 @@ public sealed class AssignmentVersion
         if (maxAttempts <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(maxAttempts), "تعداد تلاش مجاز باید بیشتر از صفر باشد.");
+        }
+
+        if (maxScore <= 0 ||
+            maxScore > MaximumScoreValue ||
+            decimal.Round(maxScore, 2) != maxScore)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(maxScore),
+                "سقف نمره باید مثبت، حداکثر ۹٬۹۹۹٬۹۹۹٫۹۹ و دارای حداکثر دو رقم اعشار باشد.");
         }
     }
 }

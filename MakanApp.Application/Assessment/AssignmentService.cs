@@ -83,6 +83,7 @@ public sealed partial class AssignmentService : IAssignmentService
                 command.DueAtUtc,
                 command.AllowLateSubmission,
                 command.MaxAttempts,
+                command.MaxScore,
                 nowUtc);
             record.Assignment.MarkDraftUpdated(nowUtc);
         }
@@ -173,6 +174,7 @@ public sealed partial class AssignmentService : IAssignmentService
                 command.DueAtUtc,
                 command.AllowLateSubmission,
                 command.MaxAttempts,
+                command.MaxScore,
                 membershipId,
                 nowUtc);
         }

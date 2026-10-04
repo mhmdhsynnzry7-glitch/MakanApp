@@ -37,6 +37,14 @@ public sealed class AssignmentModelTests
         Assert.Throws<ArgumentOutOfRangeException>(() => CreateVersion(maxAttempts: maxAttempts));
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void VersionRejectsNonPositiveMaxScore(int maxScore)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => CreateVersion(maxScore: maxScore));
+    }
+
     [Fact]
     public void VersionRejectsNonUtcDueDate()
     {
@@ -63,6 +71,7 @@ public sealed class AssignmentModelTests
             UtcNow().AddDays(3),
             true,
             2,
+            25m,
             UtcNow()));
     }
 
@@ -114,7 +123,8 @@ public sealed class AssignmentModelTests
         string title = "تمرین",
         string description = "توضیح",
         DateTime? dueAtUtc = null,
-        int maxAttempts = 1)
+        int maxAttempts = 1,
+        decimal maxScore = 20m)
     {
         var now = UtcNow();
         return AssignmentVersion.CreateDraft(
@@ -127,6 +137,7 @@ public sealed class AssignmentModelTests
             dueAtUtc ?? now.AddDays(1),
             false,
             maxAttempts,
+            maxScore,
             Guid.NewGuid(),
             now);
     }

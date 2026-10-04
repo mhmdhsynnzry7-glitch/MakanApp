@@ -93,6 +93,7 @@ public sealed partial class AssignmentService
         var code = exception switch
         {
             ArgumentOutOfRangeException { ParamName: "maxAttempts" } => AssessmentErrorCodes.AssignmentAttemptsInvalid,
+            ArgumentOutOfRangeException { ParamName: "maxScore" } => AssessmentErrorCodes.AssignmentMaxScoreInvalid,
             ArgumentException { ParamName: "title" } => AssessmentErrorCodes.AssignmentTitleRequired,
             ArgumentException { ParamName: "description" } => AssessmentErrorCodes.AssignmentDescriptionInvalid,
             ArgumentException { ParamName: "dueAtUtc" } => AssessmentErrorCodes.AssignmentDueDateInvalid,
@@ -153,6 +154,7 @@ public sealed partial class AssignmentService
             version.DueAtUtc,
             version.AllowLateSubmission,
             version.MaxAttempts,
+            version.MaxScore,
             Convert.ToBase64String(assignment.RowVersion),
             Convert.ToBase64String(version.RowVersion));
 }

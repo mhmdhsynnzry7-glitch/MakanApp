@@ -164,6 +164,25 @@ OTP با مولد تصادفی رمزنگاری تولید و فقط به‌صو
 
 خواندن کلاس‌های فرزند برای نقش `Parent` عمداً در این مرحله ارائه نشده است و تا اضافه‌شدن read model امن مبتنی بر Guardian context با خطای کنترل‌شده رد می‌شود.
 
+## ارزیابی و انتشار نمره تکلیف
+
+هر `AssignmentVersion` سقف نمره مستقل و اجباری `MaxScore decimal(9,2)` دارد. این مقدار هنگام ساخت/ویرایش Draft صریحاً دریافت می‌شود، SQL Default ندارد و پس از انتشار نسخه قابل تغییر درجا نیست. فقط `SubmissionAttempt` با وضعیت `Submitted` قابل ارزیابی است.
+
+`EvaluationRevision` پیش‌نویس ارزیابی را از `GradeRelease` جدا نگه می‌دارد. ذخیره نمره یا بازخورد به معنی انتشار نیست. اصلاح نتیجه منتشرشده یک revision تازه با دلیل اصلاح می‌سازد؛ revision قبلی حذف یا بازنویسی نمی‌شود. `rowversion` و تراکنش کوتاه `Serializable` جلوی overwrite خاموش و انتشار هم‌زمان تکراری را می‌گیرند.
+
+| متد | مسیر | مجوز/کاربرد |
+|---|---|---|
+| `GET` | `/api/v1/academic/evaluations/queue` | Manager سازمان یا Teacher دارای `TeacherAssignment` فعال |
+| `GET` | `/api/v1/academic/submission-attempts/{attemptId}/evaluation/submission` | مشاهده پاسخ نهایی برای ارزیاب مجاز |
+| `GET` | `/api/v1/academic/submission-attempts/{attemptId}/evaluation` | مشاهده revision فعلی توسط ارزیاب مجاز |
+| `PUT` | `/api/v1/academic/submission-attempts/{attemptId}/evaluation` | ساخت یا ذخیره Draft ارزیابی با `rowversion` |
+| `POST` | `/api/v1/academic/submission-attempts/{attemptId}/evaluation/release` | انتشار صریح و idempotent نتیجه |
+| `POST` | `/api/v1/academic/submission-attempts/{attemptId}/evaluation/corrections` | ساخت Draft اصلاحی با دلیل اجباری |
+| `GET` | `/api/v1/academic/submission-attempts/{attemptId}/result` | نتیجه منتشرشده برای Student مالک attempt |
+| `GET` | `/api/v1/academic/submission-attempts/{attemptId}/guardian-result` | نتیجه منتشرشده والد در Guardian context معتبر |
+
+سه داده `LearnerFeedback`، `GuardianVisibleFeedback` و `TeacherPrivateNote` قراردادهای جدا دارند. DTO دانش‌آموز فقط بازخورد دانش‌آموز و DTO والد فقط بازخورد مجاز والد را دارد؛ `TeacherPrivateNote` در هیچ‌کدام serialize نمی‌شود.
+
 برای اعمال migration روی database مجاز و ایزوله:
 
 ~~~powershell
@@ -183,8 +202,8 @@ dotnet build MakanApp.sln --configuration Debug --nologo
 dotnet test MakanApp.sln --configuration Debug --nologo
 ~~~
 
-- Unit Tests علاوه بر قواعد Identity و Organization، lifecycle رکوردهای `OrganizationPerson`، `GuardianRelation` و مدل‌های Academic را نیز بررسی می‌کنند.
-- Integration Tests migration واقعی، endpointهای Identity/Profile/Organization/Guardian/Academic، قیود tenant و رقابت ظرفیت کلاس را روی LocalDB اختصاصی `MakanApp_Academic_IntegrationTests_Step5B` بررسی و آن database را در پایان حذف می‌کنند؛ EF Core InMemory استفاده نمی‌شود.
+- Unit Tests علاوه بر قواعد Identity و Organization، lifecycle رکوردهای `OrganizationPerson`، `GuardianRelation`، مدل‌های Academic و قواعد `AssignmentVersion`/`EvaluationRevision` را بررسی می‌کنند.
+- Integration Tests migration واقعی، endpointهای Identity/Profile/Organization/Guardian/Academic/Assessment، حریم خصوصی نمره، tenant isolation و concurrency را روی LocalDB اختصاصی `MakanApp_Evaluation_IntegrationTests_Step6D` بررسی و آن database را در پایان حذف می‌کنند؛ EF Core InMemory استفاده نمی‌شود.
 - Architecture Tests جهت وابستگی Onion و نبود EF Core/ASP.NET Core در لایه‌های داخلی را enforce می‌کنند.
 
 ## اجرا
@@ -209,4 +228,4 @@ https://localhost:7063/openapi/v1.json
 
 ## محدودیت‌ها
 
-ارسال پیامک واقعی و rate limiting توزیع‌شده هنوز پیاده‌سازی نشده‌اند. ایجاد دعوت توسط مدیر، مدیریت عمومی سازمان و مدیریت عمومی `GuardianRelation` در API این مرحله ارائه نشده‌اند. خواندن کلاس‌های فرزند برای Parent، Session، Attendance، برنامه تکرارشونده، Assignment، Submission، Exam، Grade، Messaging، Copilot، گزارش‌ها، audit، outbox و deployment نیز هنوز پیاده‌سازی نشده‌اند.
+ارسال پیامک واقعی و rate limiting توزیع‌شده هنوز پیاده‌سازی نشده‌اند. ایجاد دعوت توسط مدیر، مدیریت عمومی سازمان و مدیریت عمومی `GuardianRelation` در API ارائه نشده‌اند. Rubric ساختاریافته، بازگرداندن صریح پاسخ برای revision، Exam، Intelligence/LearningEvidence، Notification delivery، Messaging، Copilot، گزارش‌ها، audit، outbox و deployment هنوز پیاده‌سازی نشده‌اند.

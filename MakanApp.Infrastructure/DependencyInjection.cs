@@ -52,6 +52,8 @@ public static class DependencyInjection
         services.AddScoped<IAssignmentService, AssignmentService>();
         services.AddScoped<ISubmissionStore, EfSubmissionStore>();
         services.AddScoped<ISubmissionService, SubmissionService>();
+        services.AddScoped<IEvaluationStore, EfEvaluationStore>();
+        services.AddScoped<IEvaluationService, EvaluationService>();
         services.AddScoped<IFileAssetStore, EfFileAssetStore>();
         services.AddScoped<IStorageService, StorageService>();
         services.AddScoped<IAccessContextResolver, GuardianAccessContextResolver>();

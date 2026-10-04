@@ -7,7 +7,8 @@ public sealed record CreateAssignmentDraftCommand(
     string Description,
     DateTime DueAtUtc,
     bool AllowLateSubmission,
-    int MaxAttempts);
+    int MaxAttempts,
+    decimal MaxScore);
 
 public sealed record UpdateAssignmentDraftCommand(
     string Title,
@@ -15,6 +16,7 @@ public sealed record UpdateAssignmentDraftCommand(
     DateTime DueAtUtc,
     bool AllowLateSubmission,
     int MaxAttempts,
+    decimal MaxScore,
     string ExpectedAssignmentRowVersion,
     string ExpectedVersionRowVersion);
 
@@ -38,6 +40,7 @@ public sealed record AssignmentResult(
     DateTime DueAtUtc,
     bool AllowLateSubmission,
     int MaxAttempts,
+    decimal MaxScore,
     string AssignmentRowVersion,
     string VersionRowVersion);
 
