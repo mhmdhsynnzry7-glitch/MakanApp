@@ -1,4 +1,5 @@
 using MakanApp.Domain.Academic;
+using MakanApp.Domain.Assessment;
 using MakanApp.Domain.Guardian;
 using MakanApp.Domain.Identity;
 using MakanApp.Domain.Organization;
@@ -18,6 +19,9 @@ public sealed class MakanDbContext(DbContextOptions<MakanDbContext> options)
     public DbSet<ScheduleRule> ScheduleRules => Set<ScheduleRule>();
     public DbSet<Attendance> Attendance => Set<Attendance>();
     public DbSet<AttendanceRevision> AttendanceRevisions => Set<AttendanceRevision>();
+    public DbSet<Assignment> Assignments => Set<Assignment>();
+    public DbSet<AssignmentVersion> AssignmentVersions => Set<AssignmentVersion>();
+    public DbSet<AssignmentRecipient> AssignmentRecipients => Set<AssignmentRecipient>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Person> Persons => Set<Person>();
     public DbSet<UserCredential> UserCredentials => Set<UserCredential>();

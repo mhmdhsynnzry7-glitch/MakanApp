@@ -1,10 +1,12 @@
 using System.Security.Cryptography;
 using System.Text;
 using MakanApp.Application.Academic;
+using MakanApp.Application.Assessment;
 using MakanApp.Application.Guardian;
 using MakanApp.Application.Identity;
 using MakanApp.Application.Organization;
 using MakanApp.Infrastructure.Academic;
+using MakanApp.Infrastructure.Assessment;
 using MakanApp.Infrastructure.Guardian;
 using MakanApp.Infrastructure.Identity;
 using MakanApp.Infrastructure.Organization;
@@ -44,6 +46,8 @@ public static class DependencyInjection
         services.AddScoped<IAcademicService, AcademicService>();
         services.AddScoped<IAcademicSessionStore, EfAcademicSessionStore>();
         services.AddScoped<IAcademicSessionService, AcademicSessionService>();
+        services.AddScoped<IAssignmentStore, EfAssignmentStore>();
+        services.AddScoped<IAssignmentService, AssignmentService>();
         services.AddScoped<IAccessContextResolver, GuardianAccessContextResolver>();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton(CreateOtpOptions(configuration, environmentName));

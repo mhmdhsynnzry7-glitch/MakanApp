@@ -1,4 +1,5 @@
 using MakanApp.Application.Academic;
+using MakanApp.Application.Assessment;
 using MakanApp.Application.Guardian;
 using MakanApp.Application.Identity;
 using MakanApp.Application.Organization;
@@ -18,6 +19,9 @@ public sealed class GlobalExceptionHandler(
     {
         var problemDetails = exception switch
         {
+            AssessmentException assessmentException => CreateKnownProblem(
+                assessmentException.Code,
+                assessmentException.Message),
             AcademicException academicException => CreateKnownProblem(
                 academicException.Code,
                 academicException.Message),
@@ -91,6 +95,11 @@ public sealed class GlobalExceptionHandler(
             AcademicErrorCodes.AttendanceNotAllowed => StatusCodes.Status403Forbidden,
             AcademicErrorCodes.AttendanceAlreadyRecorded => StatusCodes.Status409Conflict,
             AcademicErrorCodes.AttendanceAlreadyChanged => StatusCodes.Status409Conflict,
+            AssessmentErrorCodes.AssignmentNotFound => StatusCodes.Status404NotFound,
+            AssessmentErrorCodes.AssignmentNotAllowed => StatusCodes.Status403Forbidden,
+            AssessmentErrorCodes.AssignmentNotDraft => StatusCodes.Status409Conflict,
+            AssessmentErrorCodes.AssignmentAlreadyPublished => StatusCodes.Status409Conflict,
+            AssessmentErrorCodes.TeacherNotAssigned => StatusCodes.Status403Forbidden,
             _ => StatusCodes.Status400BadRequest
         };
 
