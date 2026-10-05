@@ -150,7 +150,8 @@ public sealed class MessagingService(
             result.Conversation.Type,
             result.Conversation.Scope,
             result.Conversation.OrganizationId,
-            Map(result.OtherParticipant),
+            result.Conversation.Title,
+            result.OtherParticipant is null ? null : Map(result.OtherParticipant),
             result.LastMessagePreview,
             result.LastMessageAtUtc,
             result.LastMessageSequence);

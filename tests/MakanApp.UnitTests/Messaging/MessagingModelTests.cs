@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using MakanApp.Application.Messaging;
 using MakanApp.Application.Organization;
 using MakanApp.Domain.Identity;
@@ -9,6 +10,77 @@ namespace MakanApp.UnitTests.Messaging;
 
 public sealed class MessagingModelTests
 {
+    [Fact]
+    public void UserManagedConversationRequiresTitleAndTracksCreationIdentity()
+    {
+        var creatorId = Guid.NewGuid();
+        var operationId = Guid.NewGuid();
+        var hash = RandomNumberGenerator.GetBytes(Conversation.CreationPayloadHashLength);
+
+        var conversation = Conversation.CreateUserManaged(
+            ConversationType.Group,
+            ConversationScope.Personal,
+            null,
+            "  گروه مطالعه  ",
+            "  توضیح  ",
+            creatorId,
+            operationId,
+            hash,
+            DateTime.UtcNow);
+
+        Assert.Equal("گروه مطالعه", conversation.Title);
+        Assert.Equal("توضیح", conversation.Description);
+        Assert.Equal(ConversationManagementPolicy.UserManaged, conversation.ManagementPolicy);
+        Assert.Equal(creatorId, conversation.CreatedByUserId);
+        Assert.Equal(operationId, conversation.ClientOperationId);
+        Assert.Throws<ArgumentException>(() => Conversation.CreateUserManaged(
+            ConversationType.Channel,
+            ConversationScope.Personal,
+            null,
+            " ",
+            null,
+            creatorId,
+            Guid.NewGuid(),
+            hash,
+            DateTime.UtcNow));
+    }
+
+    [Fact]
+    public void ParticipantLifecyclePreservesEndedMembershipAndRole()
+    {
+        var userId = Guid.NewGuid();
+        var participant = ConversationParticipant.CreateActive(
+            Guid.NewGuid(),
+            userId,
+            DateTime.UtcNow,
+            ConversationParticipantRole.Admin);
+
+        participant.Leave(DateTime.UtcNow);
+
+        Assert.False(participant.IsActive);
+        Assert.Equal(ConversationParticipantStatus.Left, participant.Status);
+        Assert.Equal(userId, participant.EndedByUserId);
+        Assert.Throws<InvalidOperationException>(() =>
+            participant.ChangeRole(ConversationParticipantRole.Member));
+    }
+
+    [Fact]
+    public void OwnershipTransferChangesStateOnlyAfterDestinationAcceptance()
+    {
+        var transfer = ConversationOwnershipTransfer.CreatePending(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            DateTime.UtcNow);
+
+        Assert.Equal(OwnershipTransferStatus.Pending, transfer.Status);
+        transfer.Accept(DateTime.UtcNow);
+        Assert.Equal(OwnershipTransferStatus.Accepted, transfer.Status);
+        Assert.Throws<InvalidOperationException>(() => transfer.Decline(DateTime.UtcNow));
+    }
+
     [Fact]
     public void DirectPairIsCanonicalRegardlessOfInputOrder()
     {
@@ -66,6 +138,7 @@ public sealed class MessagingModelTests
 
     private static Message CreateMessage(string text, int maximumLength) =>
         Message.CreateText(
+            Guid.NewGuid(),
             Guid.NewGuid(),
             Guid.NewGuid(),
             Guid.NewGuid(),

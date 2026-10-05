@@ -11,6 +11,7 @@ public sealed class Message
     private Message(
         Guid id,
         Guid conversationId,
+        Guid senderParticipantId,
         Guid senderUserId,
         Guid clientMessageId,
         long sequence,
@@ -19,6 +20,7 @@ public sealed class Message
     {
         Id = id;
         ConversationId = conversationId;
+        SenderParticipantId = senderParticipantId;
         SenderUserId = senderUserId;
         ClientMessageId = clientMessageId;
         Sequence = sequence;
@@ -29,6 +31,7 @@ public sealed class Message
 
     public Guid Id { get; private set; }
     public Guid ConversationId { get; private set; }
+    public Guid SenderParticipantId { get; private set; }
     public Guid SenderUserId { get; private set; }
     public Guid ClientMessageId { get; private set; }
     public long Sequence { get; private set; }
@@ -38,6 +41,7 @@ public sealed class Message
 
     public static Message CreateText(
         Guid conversationId,
+        Guid senderParticipantId,
         Guid senderUserId,
         Guid clientMessageId,
         long sequence,
@@ -45,7 +49,8 @@ public sealed class Message
         int maximumTextLength,
         DateTime sentAtUtc)
     {
-        if (conversationId == Guid.Empty || senderUserId == Guid.Empty || clientMessageId == Guid.Empty)
+        if (conversationId == Guid.Empty || senderParticipantId == Guid.Empty ||
+            senderUserId == Guid.Empty || clientMessageId == Guid.Empty)
         {
             throw new ArgumentException("شناسه گفتگو، فرستنده و پیام کلاینت الزامی است.");
         }
@@ -64,6 +69,7 @@ public sealed class Message
         return new Message(
             Guid.NewGuid(),
             conversationId,
+            senderParticipantId,
             senderUserId,
             clientMessageId,
             sequence,

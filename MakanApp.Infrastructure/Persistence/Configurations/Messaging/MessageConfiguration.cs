@@ -38,8 +38,18 @@ public sealed class MessageConfiguration : IEntityTypeConfiguration<Message>
             .OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<ConversationParticipant>()
             .WithMany()
-            .HasForeignKey(message => new { message.ConversationId, message.SenderUserId })
-            .HasPrincipalKey(participant => new { participant.ConversationId, participant.UserId })
+            .HasForeignKey(message => new
+            {
+                message.SenderParticipantId,
+                message.ConversationId,
+                message.SenderUserId
+            })
+            .HasPrincipalKey(participant => new
+            {
+                participant.Id,
+                participant.ConversationId,
+                participant.UserId
+            })
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

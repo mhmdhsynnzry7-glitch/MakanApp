@@ -89,7 +89,67 @@ public sealed partial class MakanAppWebApplicationFactory
                 message.SentAtUtc))
             .ToArrayAsync();
     }
+
+    public async Task<ConversationParticipantDatabaseRecord[]> GetConversationParticipantsAsync(
+        Guid conversationId)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MakanDbContext>();
+        return await dbContext.ConversationParticipants
+            .AsNoTracking()
+            .Where(participant => participant.ConversationId == conversationId)
+            .OrderBy(participant => participant.JoinedAtUtc)
+            .Select(participant => new ConversationParticipantDatabaseRecord(
+                participant.Id,
+                participant.UserId,
+                participant.Role,
+                participant.Status,
+                participant.EndedAtUtc))
+            .ToArrayAsync();
+    }
+
+    public async Task<int> CountManagedConversationsAsync(
+        Guid creatorUserId,
+        Guid clientOperationId)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MakanDbContext>();
+        return await dbContext.Conversations.CountAsync(conversation =>
+            conversation.CreatedByUserId == creatorUserId &&
+            conversation.ClientOperationId == clientOperationId &&
+            conversation.ManagementPolicy == ConversationManagementPolicy.UserManaged);
+    }
+
+    public async Task<Guid> CreateSystemManagedConversationAsync(
+        Guid organizationId,
+        Guid participantUserId,
+        ConversationType type)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MakanDbContext>();
+        var conversation = Conversation.CreateSystemManagedAcademic(
+            type,
+            organizationId,
+            "گفتگوی کلاسی مدیریت‌شده",
+            null,
+            DateTime.UtcNow);
+        dbContext.Conversations.Add(conversation);
+        dbContext.ConversationParticipants.Add(ConversationParticipant.CreateActive(
+            conversation.Id,
+            participantUserId,
+            DateTime.UtcNow,
+            ConversationParticipantRole.Member));
+        await dbContext.SaveChangesAsync();
+        return conversation.Id;
+    }
 }
+
+public sealed record ConversationParticipantDatabaseRecord(
+    Guid Id,
+    Guid UserId,
+    ConversationParticipantRole Role,
+    ConversationParticipantStatus Status,
+    DateTime? EndedAtUtc);
 
 public sealed record MessageDatabaseRecord(
     Guid Id,

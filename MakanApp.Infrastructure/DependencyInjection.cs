@@ -56,8 +56,13 @@ public static class DependencyInjection
         services.AddScoped<ISubmissionService, SubmissionService>();
         services.AddScoped<IEvaluationStore, EfEvaluationStore>();
         services.AddScoped<IEvaluationService, EvaluationService>();
-        services.AddScoped<IMessagingStore, EfMessagingStore>();
+        services.AddScoped<EfMessagingStore>();
+        services.AddScoped<IMessagingStore>(serviceProvider =>
+            serviceProvider.GetRequiredService<EfMessagingStore>());
+        services.AddScoped<IConversationManagementStore>(serviceProvider =>
+            serviceProvider.GetRequiredService<EfMessagingStore>());
         services.AddScoped<IMessagingService, MessagingService>();
+        services.AddScoped<IConversationManagementService, ConversationManagementService>();
         services.AddScoped<IFileAssetStore, EfFileAssetStore>();
         services.AddScoped<IStorageService, StorageService>();
         services.AddScoped<IAccessContextResolver, GuardianAccessContextResolver>();
@@ -66,6 +71,7 @@ public static class DependencyInjection
         services.AddSingleton(CreateSessionOptions(configuration));
         services.AddSingleton(CreateMessagingOptions(configuration));
         services.AddSingleton<ICommunicationEligibilityPolicy, CommunicationEligibilityPolicy>();
+        services.AddSingleton<IConversationManagementPolicy, ConversationManagementAuthorizationPolicy>();
         var storageOptions = CreateStorageOptions(configuration);
         services.AddSingleton(storageOptions);
         services.AddSingleton<FileUploadPolicy>();

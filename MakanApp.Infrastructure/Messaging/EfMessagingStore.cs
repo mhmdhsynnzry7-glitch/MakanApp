@@ -11,14 +11,32 @@ namespace MakanApp.Infrastructure.Messaging;
 
 public sealed partial class EfMessagingStore(
     MakanDbContext dbContext,
-    ICommunicationEligibilityPolicy eligibilityPolicy) : IMessagingStore
+    ICommunicationEligibilityPolicy eligibilityPolicy,
+    IConversationManagementPolicy managementPolicy) : IMessagingStore, IConversationManagementStore
 {
-    public async Task<DirectConversationStoreResult> StartOrGetDirectConversationAsync(
+    public Task<DirectConversationStoreResult> StartOrGetDirectConversationAsync(
         Guid actorUserId,
         Guid targetUserId,
         ConversationScope scope,
         AccessContext accessContext,
         DateTime nowUtc,
+        CancellationToken cancellationToken) =>
+        StartOrGetDirectConversationCoreAsync(
+            actorUserId,
+            targetUserId,
+            scope,
+            accessContext,
+            nowUtc,
+            0,
+            cancellationToken);
+
+    private async Task<DirectConversationStoreResult> StartOrGetDirectConversationCoreAsync(
+        Guid actorUserId,
+        Guid targetUserId,
+        ConversationScope scope,
+        AccessContext accessContext,
+        DateTime nowUtc,
+        int retryCount,
         CancellationToken cancellationToken)
     {
         var organizationId = scope == ConversationScope.Organization
@@ -90,6 +108,57 @@ public sealed partial class EfMessagingStore(
             var identity = await LoadSafeIdentityAsync(targetUserId, cancellationToken);
             return new DirectConversationStoreResult(existing, identity, true);
         }
+        catch (DbUpdateException exception) when (IsDeadlock(exception))
+        {
+            return await RetryDirectCreationAfterDeadlockAsync(
+                actorUserId,
+                targetUserId,
+                scope,
+                accessContext,
+                nowUtc,
+                retryCount,
+                exception,
+                cancellationToken);
+        }
+        catch (SqlException exception) when (exception.Number == 1205)
+        {
+            return await RetryDirectCreationAfterDeadlockAsync(
+                actorUserId,
+                targetUserId,
+                scope,
+                accessContext,
+                nowUtc,
+                retryCount,
+                exception,
+                cancellationToken);
+        }
+    }
+
+    private async Task<DirectConversationStoreResult> RetryDirectCreationAfterDeadlockAsync(
+        Guid actorUserId,
+        Guid targetUserId,
+        ConversationScope scope,
+        AccessContext accessContext,
+        DateTime nowUtc,
+        int retryCount,
+        Exception exception,
+        CancellationToken cancellationToken)
+    {
+        if (retryCount >= 3)
+        {
+            throw ConcurrencyConflict(exception);
+        }
+
+        dbContext.ChangeTracker.Clear();
+        await Task.Delay(TimeSpan.FromMilliseconds(20 * (retryCount + 1)), cancellationToken);
+        return await StartOrGetDirectConversationCoreAsync(
+            actorUserId,
+            targetUserId,
+            scope,
+            accessContext,
+            nowUtc,
+            retryCount + 1,
+            cancellationToken);
     }
 
     public async Task<Message> SendTextMessageAsync(
@@ -114,13 +183,13 @@ public sealed partial class EfMessagingStore(
             throw ConversationNotFound();
         }
 
-        var isActiveParticipant = await dbContext.ConversationParticipants.AnyAsync(
+        var activeParticipant = await dbContext.ConversationParticipants.SingleOrDefaultAsync(
             participant => participant.ConversationId == conversationId &&
                            participant.UserId == userId &&
                            participant.Status == ConversationParticipantStatus.Active &&
-                           participant.LeftAtUtc == null,
+                           participant.EndedAtUtc == null,
             cancellationToken);
-        if (!isActiveParticipant || conversation.Type != ConversationType.Direct)
+        if (activeParticipant is null)
         {
             throw ConversationNotFound();
         }
@@ -155,28 +224,63 @@ public sealed partial class EfMessagingStore(
         if (conversation.Status != ConversationStatus.Active)
         {
             throw new MessagingException(
-                MessagingErrorCodes.MessageNotAllowed,
+                MessagingErrorCodes.ConversationArchived,
                 "این گفتگو در حال حاضر پیام تازه نمی‌پذیرد.");
         }
 
-        var targetUserId = conversation.GetDirectPair().Other(userId);
-        var facts = await LoadEligibilityFactsAsync(
-            userId,
-            targetUserId,
-            conversation.Scope,
-            conversation.OrganizationId,
-            accessContext,
-            nowUtc,
-            cancellationToken);
-        if (!eligibilityPolicy.CanStartOrSend(facts, MessagingEligibilityOperation.Send))
+        if (conversation.Type is ConversationType.Group or ConversationType.Channel)
+        {
+            if (conversation.Scope == ConversationScope.Organization &&
+                (!accessContext.MembershipId.HasValue ||
+                 !await dbContext.Memberships.AnyAsync(
+                     membership => membership.Id == accessContext.MembershipId.Value &&
+                                   membership.UserId == userId &&
+                                   membership.OrganizationId == conversation.OrganizationId &&
+                                   membership.Status == MembershipStatus.Active &&
+                                   membership.EndedAtUtc == null,
+                     cancellationToken)))
+            {
+                throw new MessagingException(
+                    MessagingErrorCodes.MessageNotAllowed,
+                    "عضویت سازمانی فعال برای ارسال پیام وجود ندارد.");
+            }
+
+            if (conversation.ManagementPolicy != ConversationManagementPolicy.UserManaged ||
+                !managementPolicy.CanPublish(conversation.Type, activeParticipant.Role))
+            {
+                throw new MessagingException(
+                    MessagingErrorCodes.MessagePublishNotAllowed,
+                    "نقش فعلی اجازه انتشار پیام در این گفتگو را ندارد.");
+            }
+        }
+        else if (conversation.Type != ConversationType.Direct)
         {
             throw new MessagingException(
-                MessagingErrorCodes.MessageNotAllowed,
-                "رابطه ارتباطی معتبر برای ارسال پیام وجود ندارد.");
+                MessagingErrorCodes.MessagePublishNotAllowed,
+                "انتشار پیام در این نوع گفتگو مجاز نیست.");
+        }
+        else
+        {
+            var targetUserId = conversation.GetDirectPair().Other(userId);
+            var facts = await LoadEligibilityFactsAsync(
+                userId,
+                targetUserId,
+                conversation.Scope,
+                conversation.OrganizationId,
+                accessContext,
+                nowUtc,
+                cancellationToken);
+            if (!eligibilityPolicy.CanStartOrSend(facts, MessagingEligibilityOperation.Send))
+            {
+                throw new MessagingException(
+                    MessagingErrorCodes.MessageNotAllowed,
+                    "رابطه ارتباطی معتبر برای ارسال پیام وجود ندارد.");
+            }
         }
 
         var message = Message.CreateText(
             conversationId,
+            activeParticipant.Id,
             userId,
             clientMessageId,
             conversation.AllocateNextMessageSequence(),
@@ -246,7 +350,7 @@ public sealed partial class EfMessagingStore(
             .AsNoTracking()
             .Where(participant => participant.ConversationId == conversationId &&
                                   participant.Status == ConversationParticipantStatus.Active &&
-                                  participant.LeftAtUtc == null)
+                                  participant.EndedAtUtc == null)
             .Select(participant => participant.UserId)
             .ToArrayAsync(cancellationToken);
         if (participants.Length != 2 ||
@@ -261,6 +365,9 @@ public sealed partial class EfMessagingStore(
 
     private static bool IsUniqueConflict(DbUpdateException exception) =>
         exception.InnerException is SqlException { Number: 2601 or 2627 };
+
+    private static bool IsDeadlock(DbUpdateException exception) =>
+        exception.InnerException is SqlException { Number: 1205 };
 
     private static MessagingException RecipientNotAvailable() =>
         new(

@@ -15,4 +15,15 @@ public static class MessagingErrorCodes
     public const string ParticipantNotActive = "PARTICIPANT_NOT_ACTIVE";
     public const string OrganizationScopeMismatch = "ORGANIZATION_SCOPE_MISMATCH";
     public const string ConcurrencyConflict = "CONCURRENCY_CONFLICT";
+    public const string ManagedConversationInvalid = "MANAGED_CONVERSATION_INVALID";
+    public const string ConversationCreationConflict = "CONVERSATION_CREATION_CONFLICT";
+    public const string ConversationManagementNotAllowed = "CONVERSATION_MANAGEMENT_NOT_ALLOWED";
+    public const string ConversationArchived = "CONVERSATION_ARCHIVED";
+    public const string ParticipantAlreadyActive = "PARTICIPANT_ALREADY_ACTIVE";
+    public const string ParticipantNotFound = "PARTICIPANT_NOT_FOUND";
+    public const string ConversationRoleInvalid = "CONVERSATION_ROLE_INVALID";
+    public const string LastOwnerRequired = "LAST_OWNER_REQUIRED";
+    public const string OwnershipTransferNotFound = "OWNERSHIP_TRANSFER_NOT_FOUND";
+    public const string OwnershipTransferConflict = "OWNERSHIP_TRANSFER_CONFLICT";
+    public const string MessagePublishNotAllowed = "MESSAGE_PUBLISH_NOT_ALLOWED";
 }

@@ -196,7 +196,7 @@ OTP با مولد تصادفی رمزنگاری تولید و فقط به‌صو
 | `GET` | `/api/v1/conversations/{conversationId}/messages` | تاریخچه پایدار بر اساس Sequence |
 | `POST` | `/api/v1/conversations/{conversationId}/messages` | ارسال پایدار و retry-safe پیام متن |
 
-`ClientMessageId` همراه با Conversation و Sender کلید idempotency است. retry با محتوای یکسان همان receipt را برمی‌گرداند و استفاده از همان شناسه برای متن متفاوت رد می‌شود. `Sequence` و `SentAtUtc` سمت سرور و داخل transaction SQL Server تخصیص می‌یابند. `Sent` فقط commit موفق در SQL Server است؛ Delivered/Seen، فایل، Group/Channel و SignalR هنوز پیاده‌سازی نشده‌اند.
+`ClientMessageId` همراه با Conversation و Sender کلید idempotency است. retry با محتوای یکسان همان receipt را برمی‌گرداند و استفاده از همان شناسه برای متن متفاوت رد می‌شود. `Sequence` و `SentAtUtc` سمت سرور و داخل transaction SQL Server تخصیص می‌یابند. `Sent` فقط commit موفق در SQL Server است؛ Delivered/Seen، فایل و SignalR هنوز پیاده‌سازی نشده‌اند.
 
 برای اعمال migration روی database مجاز و ایزوله:
 
@@ -218,7 +218,7 @@ dotnet test MakanApp.sln --configuration Debug --nologo
 ~~~
 
 - Unit Tests علاوه بر قواعد Identity و Organization، lifecycle رکوردهای `OrganizationPerson` و `GuardianRelation`، مدل‌های Academic/Assessment و قواعد Domain و eligibility در Messaging را بررسی می‌کنند.
-- Integration Tests migration واقعی، endpointهای Identity/Profile/Organization/Guardian/Academic/Assessment/Messaging، حریم خصوصی، tenant isolation، idempotency و concurrency را روی LocalDB اختصاصی `MakanApp_Messaging_IntegrationTests_Step7A` بررسی و آن database را در پایان حذف می‌کنند؛ EF Core InMemory استفاده نمی‌شود.
+- Integration Tests migration واقعی، endpointهای Identity/Profile/Organization/Guardian/Academic/Assessment/Messaging، حریم خصوصی، tenant isolation، idempotency و concurrency را روی LocalDB اختصاصی `MakanApp_GroupChannel_IntegrationTests_Step7B` بررسی و آن database را در پایان حذف می‌کنند؛ EF Core InMemory استفاده نمی‌شود.
 - Architecture Tests جهت وابستگی Onion و نبود EF Core/ASP.NET Core در لایه‌های داخلی را enforce می‌کنند.
 
 ## اجرا
@@ -233,6 +233,26 @@ https://localhost:7063/swagger
 https://localhost:7063/openapi/v1.json
 ~~~
 
+## گروه و کانال پیام‌رسانی — STEP 7B
+
+Group و Channel نوع‌های فعال `Conversation` هستند. ساخت آن‌ها با `ClientOperationId` retry-safe است و نقش‌های `Owner`، `Admin` و `Member`، خروج/حذف عضو، انتقال مالکیت با پذیرش مقصد و archive را پشتیبانی می‌کنند. همه اعضای فعال Group می‌توانند پیام بفرستند؛ در Channel فقط Owner/Admin منتشر می‌کنند.
+
+مسیرهای مدیریت زیر به API اضافه شده‌اند:
+
+- `POST /api/v1/conversations/groups`
+- `POST /api/v1/conversations/channels`
+- `GET /api/v1/conversations/{conversationId}`
+- `POST /api/v1/conversations/{conversationId}/members`
+- `DELETE /api/v1/conversations/{conversationId}/members/{userId}`
+- `POST /api/v1/conversations/{conversationId}/leave`
+- `PATCH /api/v1/conversations/{conversationId}/members/{userId}/role`
+- `POST /api/v1/conversations/{conversationId}/ownership-transfers`
+- `POST /api/v1/conversations/{conversationId}/ownership-transfers/{transferId}/accept`
+- `POST /api/v1/conversations/{conversationId}/ownership-transfers/{transferId}/decline`
+- `POST /api/v1/conversations/{conversationId}/archive`
+
+جزئیات تصمیم‌های امنیتی، integrity دیتابیس و محدودیت‌های این مرحله در `docs/architecture/STEP_7B_GROUP_CHANNEL_MANAGEMENT.md` ثبت شده است. هر عبارت قدیمی مبنی بر پیاده‌سازی‌نشدن Group/Channel با این بخش منسوخ است. provisioning خودکار `SystemManagedAcademic` و قابلیت‌های realtime/attachment همچنان خارج از محدوده STEP 7B هستند. دیتابیس integration test فعلی `MakanApp_GroupChannel_IntegrationTests_Step7B` است.
+
 ## Visual Studio
 
 1. `MakanApp.sln` را باز کنید.
@@ -243,4 +263,4 @@ https://localhost:7063/openapi/v1.json
 
 ## محدودیت‌ها
 
-ارسال پیامک واقعی و rate limiting توزیع‌شده هنوز پیاده‌سازی نشده‌اند. ایجاد دعوت توسط مدیر، مدیریت عمومی سازمان و مدیریت عمومی `GuardianRelation` در API ارائه نشده‌اند. Rubric ساختاریافته، بازگرداندن صریح پاسخ برای revision، Exam، Intelligence/LearningEvidence، Notification delivery، Group/Channel و attachment/realtime در Messaging، Copilot، گزارش‌ها، audit، outbox و deployment هنوز پیاده‌سازی نشده‌اند.
+ارسال پیامک واقعی و rate limiting توزیع‌شده هنوز پیاده‌سازی نشده‌اند. ایجاد دعوت توسط مدیر، مدیریت عمومی سازمان و مدیریت عمومی `GuardianRelation` در API ارائه نشده‌اند. Rubric ساختاریافته، بازگرداندن صریح پاسخ برای revision، Exam، Intelligence/LearningEvidence، Notification delivery، provisioning خودکار SystemManagedAcademic و attachment/realtime در Messaging، Copilot، گزارش‌ها، audit، outbox و deployment هنوز پیاده‌سازی نشده‌اند.

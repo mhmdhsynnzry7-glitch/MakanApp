@@ -15,7 +15,7 @@ public sealed record DirectConversationStoreResult(
 
 public sealed record ConversationSummaryStoreRecord(
     Conversation Conversation,
-    SafeMessagingIdentityRecord OtherParticipant,
+    SafeMessagingIdentityRecord? OtherParticipant,
     string? LastMessagePreview,
     DateTime? LastMessageAtUtc,
     long? LastMessageSequence);

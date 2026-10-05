@@ -24,8 +24,7 @@ public sealed partial class EfMessagingStore
                 on participant.ConversationId equals conversation.Id
             where participant.UserId == userId &&
                   participant.Status == ConversationParticipantStatus.Active &&
-                  participant.LeftAtUtc == null &&
-                  conversation.Type == ConversationType.Direct &&
+                  participant.EndedAtUtc == null &&
                   conversation.Status == ConversationStatus.Active &&
                   (workspaceType == WorkspaceType.Personal &&
                    conversation.Scope == ConversationScope.Personal ||
@@ -47,8 +46,12 @@ public sealed partial class EfMessagingStore
         var results = new List<ConversationSummaryStoreRecord>(conversations.Length);
         foreach (var conversation in conversations)
         {
-            var otherUserId = conversation.GetDirectPair().Other(userId);
-            var identity = await LoadSafeIdentityAsync(otherUserId, cancellationToken);
+            SafeMessagingIdentityRecord? identity = null;
+            if (conversation.Type == ConversationType.Direct)
+            {
+                var otherUserId = conversation.GetDirectPair().Other(userId);
+                identity = await LoadSafeIdentityAsync(otherUserId, cancellationToken);
+            }
             var lastMessage = await dbContext.Messages
                 .AsNoTracking()
                 .Where(message => message.ConversationId == conversation.Id)
@@ -88,7 +91,7 @@ public sealed partial class EfMessagingStore
             participant => participant.ConversationId == conversationId &&
                            participant.UserId == userId &&
                            participant.Status == ConversationParticipantStatus.Active &&
-                           participant.LeftAtUtc == null,
+                           participant.EndedAtUtc == null,
             cancellationToken);
         if (!isActiveParticipant)
         {

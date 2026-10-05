@@ -25,7 +25,8 @@ public sealed record ConversationSummaryResult(
     ConversationType Type,
     ConversationScope Scope,
     Guid? OrganizationId,
-    SafeMessagingIdentityResult OtherParticipant,
+    string? Title,
+    SafeMessagingIdentityResult? OtherParticipant,
     string? LastMessagePreview,
     DateTime? LastMessageAtUtc,
     long? LastMessageSequence);

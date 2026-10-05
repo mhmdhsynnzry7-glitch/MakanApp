@@ -14,7 +14,7 @@ using Xunit;
 namespace MakanApp.IntegrationTests;
 
 [Collection(SqlServerCollection.Name)]
-public sealed class MessagingEndpointsTests(MakanAppWebApplicationFactory factory)
+public sealed partial class MessagingEndpointsTests(MakanAppWebApplicationFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = CreateJsonOptions();
     private static int _phoneSequence = 81_000_000;
