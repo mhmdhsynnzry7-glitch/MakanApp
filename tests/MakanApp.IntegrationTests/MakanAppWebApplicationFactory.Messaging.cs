@@ -156,5 +156,5 @@ public sealed record MessageDatabaseRecord(
     Guid SenderUserId,
     Guid ClientMessageId,
     long Sequence,
-    string Text,
+    string? Text,
     DateTime SentAtUtc);

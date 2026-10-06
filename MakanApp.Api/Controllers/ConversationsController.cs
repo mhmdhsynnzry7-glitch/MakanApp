@@ -1,5 +1,6 @@
 using MakanApp.Api.Authentication;
 using MakanApp.Application.Messaging;
+using MakanApp.Domain.Messaging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -78,15 +79,134 @@ public sealed class ConversationsController(
 
     [HttpPost("{conversationId:guid}/messages")]
     [ProducesResponseType<MessageReceiptResult>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<MessageReceiptResult>> SendTextMessage(
+    public async Task<ActionResult<MessageReceiptResult>> SendMessage(
         Guid conversationId,
-        SendTextMessageCommand command,
+        SendMessageCommand command,
         CancellationToken cancellationToken) =>
-        Ok(await messagingService.SendTextMessageAsync(
+        Ok(await messagingService.SendMessageAsync(
             AuthenticatedSession.GetUserId(User),
             AuthenticatedSession.GetSessionId(User),
             conversationId,
             command,
+            cancellationToken));
+
+    [HttpPatch("{conversationId:guid}/messages/{messageId:guid}")]
+    [ProducesResponseType<MessageMutationResult>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<MessageMutationResult>> EditMessage(
+        Guid conversationId,
+        Guid messageId,
+        EditMessageCommand command,
+        CancellationToken cancellationToken) =>
+        Ok(await messagingService.EditMessageAsync(
+            AuthenticatedSession.GetUserId(User),
+            AuthenticatedSession.GetSessionId(User),
+            conversationId,
+            messageId,
+            command,
+            cancellationToken));
+
+    [HttpDelete("{conversationId:guid}/messages/{messageId:guid}")]
+    [ProducesResponseType<MessageMutationResult>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<MessageMutationResult>> DeleteMessage(
+        Guid conversationId,
+        Guid messageId,
+        [FromQuery] string expectedVersion,
+        CancellationToken cancellationToken) =>
+        Ok(await messagingService.DeleteMessageAsync(
+            AuthenticatedSession.GetUserId(User),
+            AuthenticatedSession.GetSessionId(User),
+            conversationId,
+            messageId,
+            expectedVersion,
+            cancellationToken));
+
+    [HttpPost("{conversationId:guid}/messages/{messageId:guid}/forward")]
+    [ProducesResponseType<MessageReceiptResult>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<MessageReceiptResult>> ForwardMessage(
+        Guid conversationId,
+        Guid messageId,
+        ForwardMessageCommand command,
+        CancellationToken cancellationToken) =>
+        Ok(await messagingService.ForwardMessageAsync(
+            AuthenticatedSession.GetUserId(User),
+            AuthenticatedSession.GetSessionId(User),
+            conversationId,
+            messageId,
+            command,
+            cancellationToken));
+
+    [HttpPost("{conversationId:guid}/messages/{messageId:guid}/reactions")]
+    [ProducesResponseType<MessageReactionResult>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<MessageReactionResult>> AddReaction(
+        Guid conversationId,
+        Guid messageId,
+        AddReactionCommand command,
+        CancellationToken cancellationToken) =>
+        Ok(await messagingService.AddReactionAsync(
+            AuthenticatedSession.GetUserId(User),
+            AuthenticatedSession.GetSessionId(User),
+            conversationId,
+            messageId,
+            command,
+            cancellationToken));
+
+    [HttpDelete("{conversationId:guid}/messages/{messageId:guid}/reactions/{reaction}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> RemoveReaction(
+        Guid conversationId,
+        Guid messageId,
+        MessageReactionType reaction,
+        CancellationToken cancellationToken)
+    {
+        await messagingService.RemoveReactionAsync(
+            AuthenticatedSession.GetUserId(User),
+            AuthenticatedSession.GetSessionId(User),
+            conversationId,
+            messageId,
+            reaction,
+            cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("{conversationId:guid}/pins/{messageId:guid}")]
+    [ProducesResponseType<ConversationPinResult>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<ConversationPinResult>> PinMessage(
+        Guid conversationId,
+        Guid messageId,
+        CancellationToken cancellationToken) =>
+        Ok(await messagingService.PinMessageAsync(
+            AuthenticatedSession.GetUserId(User),
+            AuthenticatedSession.GetSessionId(User),
+            conversationId,
+            messageId,
+            cancellationToken));
+
+    [HttpDelete("{conversationId:guid}/pins/{messageId:guid}")]
+    [ProducesResponseType<ConversationPinResult>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<ConversationPinResult>> UnpinMessage(
+        Guid conversationId,
+        Guid messageId,
+        CancellationToken cancellationToken) =>
+        Ok(await messagingService.UnpinMessageAsync(
+            AuthenticatedSession.GetUserId(User),
+            AuthenticatedSession.GetSessionId(User),
+            conversationId,
+            messageId,
+            cancellationToken));
+
+    [HttpGet("{conversationId:guid}/media")]
+    [ProducesResponseType<ConversationMediaPageResult>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<ConversationMediaPageResult>> GetMedia(
+        Guid conversationId,
+        [FromQuery] MessageKind? kind,
+        [FromQuery] long? beforeSequence,
+        [FromQuery] int? limit,
+        CancellationToken cancellationToken) =>
+        Ok(await messagingService.GetConversationMediaAsync(
+            AuthenticatedSession.GetUserId(User),
+            AuthenticatedSession.GetSessionId(User),
+            conversationId,
+            new GetConversationMediaQuery(kind, beforeSequence, limit),
             cancellationToken));
 
     [HttpGet("{conversationId:guid}")]

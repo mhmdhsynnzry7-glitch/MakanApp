@@ -1,3 +1,4 @@
+using MakanApp.Domain.Identity;
 using MakanApp.Domain.Messaging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -10,15 +11,25 @@ public sealed class MessageConfiguration : IEntityTypeConfiguration<Message>
     {
         builder.ToTable("Messages", "messaging", table =>
         {
-            table.HasCheckConstraint("CK_Messages_Kind", "[Kind] IN (1)");
+            table.HasCheckConstraint("CK_Messages_Kind", "[Kind] IN (1, 2, 3, 4, 5)");
             table.HasCheckConstraint("CK_Messages_Sequence", "[Sequence] > 0");
-            table.HasCheckConstraint("CK_Messages_Text", "LEN(LTRIM(RTRIM([Text]))) > 0");
+            table.HasCheckConstraint("CK_Messages_CurrentRevision", "[CurrentRevisionNumber] > 0");
+            table.HasCheckConstraint(
+                "CK_Messages_Content",
+                "([DeletedAtUtc] IS NOT NULL AND [DeletedByUserId] IS NOT NULL AND [Text] IS NULL) OR " +
+                "([DeletedAtUtc] IS NULL AND [DeletedByUserId] IS NULL AND " +
+                "(([Kind] = 1 AND LEN(LTRIM(RTRIM([Text]))) > 0) OR " +
+                "([Kind] IN (2, 3, 4, 5) AND ([Text] IS NULL OR LEN(LTRIM(RTRIM([Text]))) > 0))))");
         });
         builder.HasKey(message => message.Id);
+        builder.HasAlternateKey(message => new { message.Id, message.ConversationId })
+            .HasName("UQ_Messages_Id_Conversation");
         builder.Property(message => message.Text)
-            .HasMaxLength(Message.StorageMaximumTextLength)
-            .IsRequired();
+            .HasMaxLength(Message.StorageMaximumTextLength);
         builder.Property(message => message.SentAtUtc).HasColumnType("datetime2(7)");
+        builder.Property(message => message.EditedAtUtc).HasColumnType("datetime2(7)");
+        builder.Property(message => message.DeletedAtUtc).HasColumnType("datetime2(7)");
+        builder.Property(message => message.RowVersion).IsRowVersion();
 
         builder.HasIndex(message => new { message.ConversationId, message.Sequence })
             .IsUnique()
@@ -31,6 +42,10 @@ public sealed class MessageConfiguration : IEntityTypeConfiguration<Message>
         })
             .IsUnique()
             .HasDatabaseName("UX_Messages_Conversation_Sender_ClientMessageId");
+        builder.HasIndex(message => message.ReplyToMessageId)
+            .HasDatabaseName("IX_Messages_ReplyToMessageId");
+        builder.HasIndex(message => message.ForwardedFromMessageId)
+            .HasDatabaseName("IX_Messages_ForwardedFromMessageId");
 
         builder.HasOne<Conversation>()
             .WithMany()
@@ -50,6 +65,19 @@ public sealed class MessageConfiguration : IEntityTypeConfiguration<Message>
                 participant.ConversationId,
                 participant.UserId
             })
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<Message>()
+            .WithMany()
+            .HasForeignKey(message => new { message.ReplyToMessageId, message.ConversationId })
+            .HasPrincipalKey(message => new { message.Id, message.ConversationId })
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<Message>()
+            .WithMany()
+            .HasForeignKey(message => message.ForwardedFromMessageId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<User>()
+            .WithMany()
+            .HasForeignKey(message => message.DeletedByUserId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

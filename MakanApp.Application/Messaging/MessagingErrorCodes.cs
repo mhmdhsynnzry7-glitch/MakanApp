@@ -26,4 +26,19 @@ public static class MessagingErrorCodes
     public const string OwnershipTransferNotFound = "OWNERSHIP_TRANSFER_NOT_FOUND";
     public const string OwnershipTransferConflict = "OWNERSHIP_TRANSFER_CONFLICT";
     public const string MessagePublishNotAllowed = "MESSAGE_PUBLISH_NOT_ALLOWED";
+    public const string MessageNotFound = "MESSAGE_NOT_FOUND";
+    public const string MessageNotEditable = "MESSAGE_NOT_EDITABLE";
+    public const string MessageDeleted = "MESSAGE_DELETED";
+    public const string MessageEditConflict = "MESSAGE_EDIT_CONFLICT";
+    public const string MessageKindInvalid = "MESSAGE_KIND_INVALID";
+    public const string MessageAttachmentRequired = "MESSAGE_ATTACHMENT_REQUIRED";
+    public const string MessageAttachmentNotReady = "MESSAGE_ATTACHMENT_NOT_READY";
+    public const string MessageAttachmentNotAllowed = "MESSAGE_ATTACHMENT_NOT_ALLOWED";
+    public const string MessageReplyNotAllowed = "MESSAGE_REPLY_NOT_ALLOWED";
+    public const string MessageForwardNotAllowed = "MESSAGE_FORWARD_NOT_ALLOWED";
+    public const string MessageForwardScopeNotAllowed = "MESSAGE_FORWARD_SCOPE_NOT_ALLOWED";
+    public const string ReactionNotAllowed = "REACTION_NOT_ALLOWED";
+    public const string MentionNotAllowed = "MENTION_NOT_ALLOWED";
+    public const string PinNotAllowed = "PIN_NOT_ALLOWED";
+    public const string FileNotAllowed = "FILE_NOT_ALLOWED";
 }

@@ -6,6 +6,7 @@ namespace MakanApp.Application.Storage;
 public sealed class StorageService(
     IAccessContextResolver accessContextResolver,
     IFileAssetStore store,
+    IFileAssetBoundAccessResolver boundAccessResolver,
     IFileStorage fileStorage,
     FileUploadPolicy uploadPolicy,
     StorageOptions options,
@@ -127,7 +128,7 @@ public sealed class StorageService(
     {
         var context = await accessContextResolver.ResolveAsync(userId, sessionId, cancellationToken);
         var fileAsset = await store.GetForUpdateAsync(fileAssetId, cancellationToken) ?? throw NotFound();
-        EnsureAuthorized(fileAsset, context);
+        EnsureUploaderAuthorized(fileAsset, context);
 
         if (fileAsset.Status == FileAssetStatus.Deleted)
         {
@@ -171,7 +172,18 @@ public sealed class StorageService(
         CancellationToken cancellationToken)
     {
         var fileAsset = await store.GetAsync(fileAssetId, cancellationToken) ?? throw NotFound();
-        EnsureAuthorized(fileAsset, context);
+        if (FileAccessPolicy.IsUploader(fileAsset, context))
+        {
+            EnsureCurrentScope(fileAsset, context);
+        }
+        else if (!FileAccessPolicy.IsCurrentScope(fileAsset, context) ||
+                 !await boundAccessResolver.CanReadBoundFileAsync(
+                     fileAsset,
+                     context,
+                     cancellationToken))
+        {
+            throw NotFound();
+        }
         if (fileAsset.Status == FileAssetStatus.Deleted)
         {
             throw NotFound();
@@ -180,13 +192,18 @@ public sealed class StorageService(
         return fileAsset;
     }
 
-    private static void EnsureAuthorized(FileAsset fileAsset, AccessContext context)
+    private static void EnsureUploaderAuthorized(FileAsset fileAsset, AccessContext context)
     {
         if (!FileAccessPolicy.IsUploader(fileAsset, context))
         {
             throw NotFound();
         }
 
+        EnsureCurrentScope(fileAsset, context);
+    }
+
+    private static void EnsureCurrentScope(FileAsset fileAsset, AccessContext context)
+    {
         if (!FileAccessPolicy.IsCurrentScope(fileAsset, context))
         {
             throw Error(StorageErrorCodes.FileNotAllowed, "دسترسی به فایل در فضای کاری فعلی مجاز نیست.");

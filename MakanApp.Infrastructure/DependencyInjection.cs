@@ -64,6 +64,7 @@ public static class DependencyInjection
         services.AddScoped<IMessagingService, MessagingService>();
         services.AddScoped<IConversationManagementService, ConversationManagementService>();
         services.AddScoped<IFileAssetStore, EfFileAssetStore>();
+        services.AddScoped<IFileAssetBoundAccessResolver, EfFileAssetBoundAccessResolver>();
         services.AddScoped<IStorageService, StorageService>();
         services.AddScoped<IAccessContextResolver, GuardianAccessContextResolver>();
         services.AddSingleton(TimeProvider.System);
@@ -178,7 +179,15 @@ public static class DependencyInjection
             MaximumHistoryLimit = ReadPositiveInt(
                 configuration,
                 $"{MessagingOptions.SectionName}:MaximumHistoryLimit",
-                100)
+                100),
+            MaximumAttachmentsPerMessage = ReadPositiveInt(
+                configuration,
+                $"{MessagingOptions.SectionName}:MaximumAttachmentsPerMessage",
+                10),
+            MaximumMentionsPerMessage = ReadPositiveInt(
+                configuration,
+                $"{MessagingOptions.SectionName}:MaximumMentionsPerMessage",
+                50)
         };
     }
 

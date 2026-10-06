@@ -79,7 +79,7 @@ ConnectionStrings:MakanDatabase
 dotnet user-secrets set "ConnectionStrings:MakanDatabase" "Server=(localdb)\MSSQLLocalDB;Database=MakanApp;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True" --project MakanApp.Api/MakanApp.Api.csproj
 ~~~
 
-در محیط‌های دیگر مقدار باید از secret store یا `ConnectionStrings__MakanDatabase` تأمین شود. migrationهای نسخه‌بندی‌شده در Infrastructure قرار دارند و `AddDirectMessagingFoundation` جدیدترین migration زیرساخت Messaging است. `Database.EnsureCreated` در برنامه استفاده نمی‌شود و migration هنگام startup اجرا نمی‌شود؛ اعمال migration یک عملیات کنترل‌شده و جداگانه است.
+در محیط‌های دیگر مقدار باید از secret store یا `ConnectionStrings__MakanDatabase` تأمین شود. migrationهای نسخه‌بندی‌شده در Infrastructure قرار دارند و `AddAdvancedMessagingFeatures` جدیدترین migration زیرساخت Messaging است. `Database.EnsureCreated` در برنامه استفاده نمی‌شود و migration هنگام startup اجرا نمی‌شود؛ اعمال migration یک عملیات کنترل‌شده و جداگانه است.
 
 ## API Foundation
 
@@ -218,7 +218,7 @@ dotnet test MakanApp.sln --configuration Debug --nologo
 ~~~
 
 - Unit Tests علاوه بر قواعد Identity و Organization، lifecycle رکوردهای `OrganizationPerson` و `GuardianRelation`، مدل‌های Academic/Assessment و قواعد Domain و eligibility در Messaging را بررسی می‌کنند.
-- Integration Tests migration واقعی، endpointهای Identity/Profile/Organization/Guardian/Academic/Assessment/Messaging، حریم خصوصی، tenant isolation، idempotency و concurrency را روی LocalDB اختصاصی `MakanApp_GroupChannel_IntegrationTests_Step7B` بررسی و آن database را در پایان حذف می‌کنند؛ EF Core InMemory استفاده نمی‌شود.
+- Integration Tests migration واقعی، endpointهای Identity/Profile/Organization/Guardian/Academic/Assessment/Messaging، حریم خصوصی، tenant isolation، idempotency و concurrency را روی LocalDB اختصاصی `MakanApp_AdvancedMessaging_IntegrationTests_Step7C` بررسی و آن database را در پایان حذف می‌کنند؛ EF Core InMemory استفاده نمی‌شود.
 - Architecture Tests جهت وابستگی Onion و نبود EF Core/ASP.NET Core در لایه‌های داخلی را enforce می‌کنند.
 
 ## اجرا
@@ -251,7 +251,15 @@ Group و Channel نوع‌های فعال `Conversation` هستند. ساخت آ
 - `POST /api/v1/conversations/{conversationId}/ownership-transfers/{transferId}/decline`
 - `POST /api/v1/conversations/{conversationId}/archive`
 
-جزئیات تصمیم‌های امنیتی، integrity دیتابیس و محدودیت‌های این مرحله در `docs/architecture/STEP_7B_GROUP_CHANNEL_MANAGEMENT.md` ثبت شده است. هر عبارت قدیمی مبنی بر پیاده‌سازی‌نشدن Group/Channel با این بخش منسوخ است. provisioning خودکار `SystemManagedAcademic` و قابلیت‌های realtime/attachment همچنان خارج از محدوده STEP 7B هستند. دیتابیس integration test فعلی `MakanApp_GroupChannel_IntegrationTests_Step7B` است.
+جزئیات تصمیم‌های امنیتی، integrity دیتابیس و محدودیت‌های این مرحله در `docs/architecture/STEP_7B_GROUP_CHANNEL_MANAGEMENT.md` ثبت شده است. هر عبارت قدیمی مبنی بر پیاده‌سازی‌نشدن Group/Channel با این بخش منسوخ است. provisioning خودکار `SystemManagedAcademic` و قابلیت‌های realtime همچنان خارج از محدوده STEP 7B هستند. دیتابیس integration test فعلی `MakanApp_AdvancedMessaging_IntegrationTests_Step7C` است.
+
+## پیام‌رسانی پیشرفته — STEP 7C
+
+پیام‌های `Text`، `Image`، `Video`، `Voice` و `File` روی مدل واحد `Message` اجرا می‌شوند. ویرایش با `rowversion` و جدول `MessageRevisions` تاریخچه را حفظ می‌کند؛ حذف نیز به‌جای پاک‌کردن ردیف، tombstone امن می‌سازد. Reply، Forward محدود به Scope مجاز، واکنش محدود، منشن Participant فعال، سنجاق نقش‌محور و مرور رسانه‌های مجاز پشتیبانی می‌شوند.
+
+پیوست‌ها از زیرساخت مشترک `FileAsset` استفاده می‌کنند. binding پیام فایل را retained می‌کند و دانلود دریافت‌کننده علاوه بر وضعیت فایل، دسترسی جاری به Message/Conversation را بررسی می‌کند. جزئیات مدل، endpointها، constraintها و محدودیت‌های مرحله در `docs/architecture/STEP_7C_ADVANCED_MESSAGING.md` ثبت شده است. Migration جاری Messaging برابر `AddAdvancedMessagingFeatures` و دیتابیس integration test ایزوله برابر `MakanApp_AdvancedMessaging_IntegrationTests_Step7C` است.
+
+SignalR، Delta Sync، Delivered/Read cursor، offline queue، search، block/report و moderation همچنان به مراحل بعدی واگذار شده‌اند.
 
 ## Visual Studio
 
@@ -263,4 +271,4 @@ Group و Channel نوع‌های فعال `Conversation` هستند. ساخت آ
 
 ## محدودیت‌ها
 
-ارسال پیامک واقعی و rate limiting توزیع‌شده هنوز پیاده‌سازی نشده‌اند. ایجاد دعوت توسط مدیر، مدیریت عمومی سازمان و مدیریت عمومی `GuardianRelation` در API ارائه نشده‌اند. Rubric ساختاریافته، بازگرداندن صریح پاسخ برای revision، Exam، Intelligence/LearningEvidence، Notification delivery، provisioning خودکار SystemManagedAcademic و attachment/realtime در Messaging، Copilot، گزارش‌ها، audit، outbox و deployment هنوز پیاده‌سازی نشده‌اند.
+ارسال پیامک واقعی و rate limiting توزیع‌شده هنوز پیاده‌سازی نشده‌اند. ایجاد دعوت توسط مدیر، مدیریت عمومی سازمان و مدیریت عمومی `GuardianRelation` در API ارائه نشده‌اند. Rubric ساختاریافته، بازگرداندن صریح پاسخ برای revision، Exam، Intelligence/LearningEvidence، Notification delivery، provisioning خودکار SystemManagedAcademic و realtime/delta sync در Messaging، Copilot، گزارش‌ها، audit، outbox و deployment هنوز پیاده‌سازی نشده‌اند.

@@ -22,7 +22,7 @@ public sealed partial class MakanAppWebApplicationFactory :
     private const string ConnectionStringEnvironmentVariable =
         "ConnectionStrings__MakanDatabase";
 
-    public const string DatabaseName = "MakanApp_GroupChannel_IntegrationTests_Step7B";
+    public const string DatabaseName = "MakanApp_AdvancedMessaging_IntegrationTests_Step7C";
 
     private const string TestConnectionString =
         "Server=(localdb)\\MSSQLLocalDB;Database=" + DatabaseName + ";Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
@@ -54,7 +54,10 @@ public sealed partial class MakanAppWebApplicationFactory :
                 ["Storage:MaxFileSizeBytes"] = "1024",
                 ["Storage:UnattachedLifetimeHours"] = "1",
                 ["Storage:AllowedContentTypes:0"] = "text/plain",
-                ["Storage:AllowedContentTypes:1"] = "application/pdf"
+                ["Storage:AllowedContentTypes:1"] = "application/pdf",
+                ["Storage:AllowedContentTypes:2"] = "image/png",
+                ["Storage:AllowedContentTypes:3"] = "video/mp4",
+                ["Storage:AllowedContentTypes:4"] = "audio/mpeg"
             });
         });
         builder.ConfigureTestServices(services =>
@@ -68,7 +71,10 @@ public sealed partial class MakanAppWebApplicationFactory :
                 AllowedContentTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
                     "text/plain",
-                    "application/pdf"
+                    "application/pdf",
+                    "image/png",
+                    "video/mp4",
+                    "audio/mpeg"
                 }
             });
             services.AddSingleton<StorageFailureSwitch>();

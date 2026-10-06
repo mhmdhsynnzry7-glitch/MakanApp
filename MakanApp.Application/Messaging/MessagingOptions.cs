@@ -9,4 +9,6 @@ public sealed class MessagingOptions
     public int MaximumTextLength { get; init; } = Message.StorageMaximumTextLength;
     public int DefaultHistoryLimit { get; init; } = 50;
     public int MaximumHistoryLimit { get; init; } = 100;
+    public int MaximumAttachmentsPerMessage { get; init; } = 10;
+    public int MaximumMentionsPerMessage { get; init; } = 50;
 }

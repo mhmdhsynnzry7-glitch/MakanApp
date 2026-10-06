@@ -143,7 +143,9 @@ public sealed partial class EfMessagingStore
             }
         }
 
-        return new ConversationMessagePageStoreResult(messages, nextBeforeSequence);
+        return new ConversationMessagePageStoreResult(
+            await LoadMessageRecordsAsync(messages, userId, cancellationToken),
+            nextBeforeSequence);
     }
 
     private static string? CreatePreview(string? text)

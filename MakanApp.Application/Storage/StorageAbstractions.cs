@@ -24,6 +24,14 @@ public interface IFileAssetStore
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }
 
+public interface IFileAssetBoundAccessResolver
+{
+    Task<bool> CanReadBoundFileAsync(
+        FileAsset fileAsset,
+        Organization.AccessContext accessContext,
+        CancellationToken cancellationToken);
+}
+
 public interface IStorageService
 {
     Task<FileAssetResult> UploadFileAsync(
