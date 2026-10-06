@@ -56,6 +56,8 @@ public static class DependencyInjection
         services.AddScoped<ISubmissionService, SubmissionService>();
         services.AddScoped<IEvaluationStore, EfEvaluationStore>();
         services.AddScoped<IEvaluationService, EvaluationService>();
+        services.AddScoped<IExamStore, EfExamStore>();
+        services.AddScoped<IExamService, ExamService>();
         services.AddScoped<EfMessagingStore>();
         services.AddScoped<IMessagingStore>(serviceProvider =>
             serviceProvider.GetRequiredService<EfMessagingStore>());

@@ -29,6 +29,10 @@ public sealed class MakanDbContext(DbContextOptions<MakanDbContext> options)
     public DbSet<SubmissionAttachment> SubmissionAttachments => Set<SubmissionAttachment>();
     public DbSet<EvaluationRevision> EvaluationRevisions => Set<EvaluationRevision>();
     public DbSet<GradeRelease> GradeReleases => Set<GradeRelease>();
+    public DbSet<Exam> Exams => Set<Exam>();
+    public DbSet<ExamVersion> ExamVersions => Set<ExamVersion>();
+    public DbSet<QuestionVersion> QuestionVersions => Set<QuestionVersion>();
+    public DbSet<QuestionOption> QuestionOptions => Set<QuestionOption>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Person> Persons => Set<Person>();
     public DbSet<UserCredential> UserCredentials => Set<UserCredential>();

@@ -34,4 +34,22 @@ public static class AssessmentErrorCodes
     public const string EvaluationCorrectionReasonRequired = "EVALUATION_CORRECTION_REASON_REQUIRED";
     public const string GradeNotReleased = "GRADE_NOT_RELEASED";
     public const string GradeReleaseConflict = "GRADE_RELEASE_CONFLICT";
+    public const string ExamNotFound = "EXAM_NOT_FOUND";
+    public const string ExamNotAllowed = "EXAM_NOT_ALLOWED";
+    public const string ExamNotDraft = "EXAM_NOT_DRAFT";
+    public const string ExamAlreadyPublished = "EXAM_ALREADY_PUBLISHED";
+    public const string ExamVersionLocked = "EXAM_VERSION_LOCKED";
+    public const string ExamTitleRequired = "EXAM_TITLE_REQUIRED";
+    public const string ExamWindowInvalid = "EXAM_WINDOW_INVALID";
+    public const string ExamDurationInvalid = "EXAM_DURATION_INVALID";
+    public const string ExamAttemptsInvalid = "EXAM_ATTEMPTS_INVALID";
+    public const string ExamMaxScoreInvalid = "EXAM_MAX_SCORE_INVALID";
+    public const string ExamRandomizationInvalid = "EXAM_RANDOMIZATION_INVALID";
+    public const string ExamQuestionRequired = "EXAM_QUESTION_REQUIRED";
+    public const string ExamQuestionOrderInvalid = "EXAM_QUESTION_ORDER_INVALID";
+    public const string ExamQuestionScoreInvalid = "EXAM_QUESTION_SCORE_INVALID";
+    public const string ExamScoreTotalInvalid = "EXAM_SCORE_TOTAL_INVALID";
+    public const string ExamAnswerKeyInvalid = "EXAM_ANSWER_KEY_INVALID";
+    public const string ExamStudentPreviewNotAllowed = "EXAM_STUDENT_PREVIEW_NOT_ALLOWED";
+    public const string OrganizationScopeMismatch = "ORGANIZATION_SCOPE_MISMATCH";
 }
