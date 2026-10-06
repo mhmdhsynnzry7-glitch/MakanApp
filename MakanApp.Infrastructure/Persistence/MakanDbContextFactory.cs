@@ -12,7 +12,7 @@ public sealed class MakanDbContextFactory : IDesignTimeDbContextFactory<MakanDbC
 
         if (string.IsNullOrWhiteSpace(connectionString))
         {
-            connectionString = "Server=(localdb)\\MSSQLLocalDB;Database=MakanApp;Trusted_Connection=True;TrustServerCertificate=True";
+            connectionString = "Server=.;Database=MakanApp;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
         }
 
         var options = new DbContextOptionsBuilder<MakanDbContext>()

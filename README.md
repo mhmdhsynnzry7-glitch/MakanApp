@@ -73,10 +73,10 @@ Infrastructure ----------------------> Domain
 ConnectionStrings:MakanDatabase
 ~~~
 
-`appsettings.Development.json` یک نمونه credential-free برای LocalDB دارد. برای جایگزینی امن مقدار در توسعه:
+`appsettings.Development.json` یک نمونه credential-free برای SQL Server محلی با Windows Authentication دارد. برای جایگزینی امن مقدار در توسعه:
 
 ~~~powershell
-dotnet user-secrets set "ConnectionStrings:MakanDatabase" "Server=(localdb)\MSSQLLocalDB;Database=MakanApp;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True" --project MakanApp.Api/MakanApp.Api.csproj
+dotnet user-secrets set "ConnectionStrings:MakanDatabase" "Server=.;Database=MakanApp;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True" --project MakanApp.Api/MakanApp.Api.csproj
 ~~~
 
 در محیط‌های دیگر مقدار باید از secret store یا `ConnectionStrings__MakanDatabase` تأمین شود. migrationهای نسخه‌بندی‌شده در Infrastructure قرار دارند و `AddMessagingRealtimeAndSync` جدیدترین migration زیرساخت Messaging است. `Database.EnsureCreated` در برنامه استفاده نمی‌شود و migration هنگام startup اجرا نمی‌شود؛ اعمال migration یک عملیات کنترل‌شده و جداگانه است.
