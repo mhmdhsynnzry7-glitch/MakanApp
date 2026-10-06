@@ -1,5 +1,7 @@
 using MakanApp.Application.Identity;
+using MakanApp.Application.Messaging;
 using MakanApp.Application.Storage;
+using MakanApp.Api.Realtime;
 using MakanApp.Domain.Identity;
 using MakanApp.Infrastructure.Identity;
 using MakanApp.Infrastructure.Persistence;
@@ -22,7 +24,7 @@ public sealed partial class MakanAppWebApplicationFactory :
     private const string ConnectionStringEnvironmentVariable =
         "ConnectionStrings__MakanDatabase";
 
-    public const string DatabaseName = "MakanApp_AdvancedMessaging_IntegrationTests_Step7C";
+    public const string DatabaseName = "MakanApp_MessagingSync_IntegrationTests_Step7D";
 
     private const string TestConnectionString =
         "Server=(localdb)\\MSSQLLocalDB;Database=" + DatabaseName + ";Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
@@ -78,6 +80,12 @@ public sealed partial class MakanAppWebApplicationFactory :
                 }
             });
             services.AddSingleton<StorageFailureSwitch>();
+            services.AddSingleton<RealtimeFailureSwitch>();
+            services.RemoveAll<IMessagingRealtimeNotifier>();
+            services.AddScoped<IMessagingRealtimeNotifier>(serviceProvider =>
+                new FaultInjectingMessagingRealtimeNotifier(
+                    serviceProvider.GetRequiredService<SignalRMessagingRealtimeNotifier>(),
+                    serviceProvider.GetRequiredService<RealtimeFailureSwitch>()));
             services.RemoveAll<IFileStorage>();
             services.AddSingleton<IFileStorage>(serviceProvider =>
                 new FaultInjectingFileStorage(

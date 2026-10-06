@@ -118,8 +118,18 @@ public sealed partial class EfMessagingStore
             }
 
             await dbContext.SaveChangesAsync(cancellationToken);
+            await AppendChangeAsync(
+                conversation,
+                MessagingChangeType.ConversationChanged,
+                conversation.Id,
+                null,
+                nowUtc,
+                actorUserId,
+                null,
+                cancellationToken);
             var result = await LoadManagedResultAsync(conversation, false, cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+            outboxWakeSignal.Signal();
             return result;
         }
         catch (DbUpdateException exception) when (IsUniqueConflict(exception))

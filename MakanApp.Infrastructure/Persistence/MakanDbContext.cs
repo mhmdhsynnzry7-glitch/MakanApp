@@ -5,6 +5,7 @@ using MakanApp.Domain.Identity;
 using MakanApp.Domain.Messaging;
 using MakanApp.Domain.Organization;
 using MakanApp.Domain.Storage;
+using MakanApp.Infrastructure.Messaging;
 using Microsoft.EntityFrameworkCore;
 
 namespace MakanApp.Infrastructure.Persistence;
@@ -43,6 +44,9 @@ public sealed class MakanDbContext(DbContextOptions<MakanDbContext> options)
     public DbSet<MessageReaction> MessageReactions => Set<MessageReaction>();
     public DbSet<MessageMention> MessageMentions => Set<MessageMention>();
     public DbSet<ConversationPin> ConversationPins => Set<ConversationPin>();
+    public DbSet<MessagingChangeEvent> MessagingChangeEvents => Set<MessagingChangeEvent>();
+    public DbSet<MessagingRealtimeOutboxMessage> MessagingRealtimeOutboxMessages =>
+        Set<MessagingRealtimeOutboxMessage>();
     public DbSet<PersonalCommunicationGrant> PersonalCommunicationGrants =>
         Set<PersonalCommunicationGrant>();
     public DbSet<GuardianRelation> GuardianRelations => Set<GuardianRelation>();

@@ -311,6 +311,104 @@ public sealed class MessagingService(
             page.NextBeforeSequence);
     }
 
+    public async Task<ConversationChangePageResult> GetConversationChangesAsync(
+        Guid userId,
+        Guid sessionId,
+        Guid conversationId,
+        GetConversationChangesQuery query,
+        CancellationToken cancellationToken)
+    {
+        ValidateConversationId(conversationId);
+        var afterSequence = 0L;
+        if (query.AfterCursor is not null &&
+            !MessagingChangeCursor.TryDecode(query.AfterCursor, conversationId, out afterSequence))
+        {
+            throw Error(MessagingErrorCodes.ChangeCursorInvalid, "نشانگر تغییر معتبر نیست.");
+        }
+
+        var limit = query.Limit ?? options.DefaultChangeLimit;
+        if (limit <= 0 || limit > options.MaximumChangeLimit)
+        {
+            throw Error(
+                MessagingErrorCodes.ChangeCursorInvalid,
+                $"تعداد تغییرات هر صفحه باید بین 1 و {options.MaximumChangeLimit} باشد.");
+        }
+
+        var context = await accessContextResolver.ResolveAsync(userId, sessionId, cancellationToken);
+        var page = await store.GetConversationChangesAsync(
+            userId,
+            conversationId,
+            context,
+            afterSequence,
+            limit,
+            cancellationToken);
+        return new ConversationChangePageResult(
+            page.Changes.Select(change => new ConversationChangeResult(
+                change.Id,
+                change.ChangeType,
+                change.ResourceId,
+                change.ResourceVersion,
+                MessagingChangeCursor.Encode(conversationId, change.ChangeSequence),
+                change.OccurredAtUtc,
+                change.ActorUserId,
+                change.PayloadVersion)).ToArray(),
+            MessagingChangeCursor.Encode(conversationId, page.NextChangeSequence),
+            page.HasMore);
+    }
+
+    public async Task<ConversationCursorStateResult> MarkConversationReadAsync(
+        Guid userId,
+        Guid sessionId,
+        Guid conversationId,
+        AdvanceConversationCursorCommand command,
+        CancellationToken cancellationToken)
+    {
+        ValidateConversationId(conversationId);
+        ValidateCursorSequence(command.UpToMessageSequence, MessagingErrorCodes.ReadCursorInvalid);
+        var context = await accessContextResolver.ResolveAsync(userId, sessionId, cancellationToken);
+        return Map(await store.AdvanceReadCursorAsync(
+            userId,
+            conversationId,
+            context,
+            command.UpToMessageSequence,
+            UtcNow(),
+            cancellationToken));
+    }
+
+    public async Task<ConversationCursorStateResult> AcknowledgeConversationDeliveryAsync(
+        Guid userId,
+        Guid sessionId,
+        Guid conversationId,
+        AdvanceConversationCursorCommand command,
+        CancellationToken cancellationToken)
+    {
+        ValidateConversationId(conversationId);
+        ValidateCursorSequence(command.UpToMessageSequence, MessagingErrorCodes.DeliveryCursorInvalid);
+        var context = await accessContextResolver.ResolveAsync(userId, sessionId, cancellationToken);
+        return Map(await store.AdvanceDeliveryCursorAsync(
+            userId,
+            conversationId,
+            context,
+            command.UpToMessageSequence,
+            UtcNow(),
+            cancellationToken));
+    }
+
+    public async Task AuthorizeRealtimeSubscriptionAsync(
+        Guid userId,
+        Guid sessionId,
+        Guid conversationId,
+        CancellationToken cancellationToken)
+    {
+        ValidateConversationId(conversationId);
+        var context = await accessContextResolver.ResolveAsync(userId, sessionId, cancellationToken);
+        await store.EnsureRealtimeAccessAsync(
+            userId,
+            conversationId,
+            context,
+            cancellationToken);
+    }
+
     private SendMessageStoreCommand ValidateSend(SendMessageCommand command)
     {
         if (command.ClientMessageId == Guid.Empty)
@@ -476,7 +574,19 @@ public sealed class MessagingService(
             result.OtherParticipant is null ? null : Map(result.OtherParticipant),
             result.LastMessagePreview,
             result.LastMessageAtUtc,
-            result.LastMessageSequence);
+            result.LastMessageSequence,
+            result.Participant.LastDeliveredMessageSequence,
+            result.Participant.LastReadMessageSequence,
+            result.UnreadCount);
+
+    private static ConversationCursorStateResult Map(ConversationCursorStoreResult result) =>
+        new(
+            result.Participant.ConversationId,
+            result.Participant.LastDeliveredMessageSequence,
+            result.Participant.LastReadMessageSequence,
+            result.UnreadCount,
+            result.Participant.CursorUpdatedAtUtc,
+            Convert.ToBase64String(result.Participant.RowVersion));
 
     private static SafeMessagingIdentityResult Map(SafeMessagingIdentityRecord result) =>
         new(result.UserId, result.Username, result.DisplayName);
@@ -523,6 +633,14 @@ public sealed class MessagingService(
         if (messageId == Guid.Empty)
         {
             throw Error(MessagingErrorCodes.MessageNotFound, "پیام یافت نشد.");
+        }
+    }
+
+    private static void ValidateCursorSequence(long upToMessageSequence, string errorCode)
+    {
+        if (upToMessageSequence <= 0)
+        {
+            throw Error(errorCode, "ترتیب پیام برای نشانگر معتبر نیست.");
         }
     }
 

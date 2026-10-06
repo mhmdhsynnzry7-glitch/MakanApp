@@ -79,7 +79,7 @@ ConnectionStrings:MakanDatabase
 dotnet user-secrets set "ConnectionStrings:MakanDatabase" "Server=(localdb)\MSSQLLocalDB;Database=MakanApp;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True" --project MakanApp.Api/MakanApp.Api.csproj
 ~~~
 
-در محیط‌های دیگر مقدار باید از secret store یا `ConnectionStrings__MakanDatabase` تأمین شود. migrationهای نسخه‌بندی‌شده در Infrastructure قرار دارند و `AddAdvancedMessagingFeatures` جدیدترین migration زیرساخت Messaging است. `Database.EnsureCreated` در برنامه استفاده نمی‌شود و migration هنگام startup اجرا نمی‌شود؛ اعمال migration یک عملیات کنترل‌شده و جداگانه است.
+در محیط‌های دیگر مقدار باید از secret store یا `ConnectionStrings__MakanDatabase` تأمین شود. migrationهای نسخه‌بندی‌شده در Infrastructure قرار دارند و `AddMessagingRealtimeAndSync` جدیدترین migration زیرساخت Messaging است. `Database.EnsureCreated` در برنامه استفاده نمی‌شود و migration هنگام startup اجرا نمی‌شود؛ اعمال migration یک عملیات کنترل‌شده و جداگانه است.
 
 ## API Foundation
 
@@ -196,7 +196,7 @@ OTP با مولد تصادفی رمزنگاری تولید و فقط به‌صو
 | `GET` | `/api/v1/conversations/{conversationId}/messages` | تاریخچه پایدار بر اساس Sequence |
 | `POST` | `/api/v1/conversations/{conversationId}/messages` | ارسال پایدار و retry-safe پیام متن |
 
-`ClientMessageId` همراه با Conversation و Sender کلید idempotency است. retry با محتوای یکسان همان receipt را برمی‌گرداند و استفاده از همان شناسه برای متن متفاوت رد می‌شود. `Sequence` و `SentAtUtc` سمت سرور و داخل transaction SQL Server تخصیص می‌یابند. `Sent` فقط commit موفق در SQL Server است؛ Delivered/Seen، فایل و SignalR هنوز پیاده‌سازی نشده‌اند.
+`ClientMessageId` همراه با Conversation و Sender کلید idempotency است. retry با محتوای یکسان همان receipt را برمی‌گرداند و استفاده از همان شناسه برای متن متفاوت رد می‌شود. `Sequence` و `SentAtUtc` سمت سرور و داخل transaction SQL Server تخصیص می‌یابند. `Sent` فقط commit موفق در SQL Server است؛ `Delivered` با ACK صریح کلاینت و `Read` با cursor خواندن participant ثبت می‌شوند. SignalR فقط اعلان سبک می‌فرستد و بازیابی قطعی از Delta API انجام می‌شود.
 
 برای اعمال migration روی database مجاز و ایزوله:
 
@@ -218,7 +218,7 @@ dotnet test MakanApp.sln --configuration Debug --nologo
 ~~~
 
 - Unit Tests علاوه بر قواعد Identity و Organization، lifecycle رکوردهای `OrganizationPerson` و `GuardianRelation`، مدل‌های Academic/Assessment و قواعد Domain و eligibility در Messaging را بررسی می‌کنند.
-- Integration Tests migration واقعی، endpointهای Identity/Profile/Organization/Guardian/Academic/Assessment/Messaging، حریم خصوصی، tenant isolation، idempotency و concurrency را روی LocalDB اختصاصی `MakanApp_AdvancedMessaging_IntegrationTests_Step7C` بررسی و آن database را در پایان حذف می‌کنند؛ EF Core InMemory استفاده نمی‌شود.
+- Integration Tests migration واقعی، endpointهای Identity/Profile/Organization/Guardian/Academic/Assessment/Messaging، SignalR، Delta Sync، حریم خصوصی، tenant isolation، idempotency و concurrency را روی LocalDB اختصاصی `MakanApp_MessagingSync_IntegrationTests_Step7D` بررسی و آن database را در پایان حذف می‌کنند؛ EF Core InMemory استفاده نمی‌شود.
 - Architecture Tests جهت وابستگی Onion و نبود EF Core/ASP.NET Core در لایه‌های داخلی را enforce می‌کنند.
 
 ## اجرا
@@ -257,9 +257,20 @@ Group و Channel نوع‌های فعال `Conversation` هستند. ساخت آ
 
 پیام‌های `Text`، `Image`، `Video`، `Voice` و `File` روی مدل واحد `Message` اجرا می‌شوند. ویرایش با `rowversion` و جدول `MessageRevisions` تاریخچه را حفظ می‌کند؛ حذف نیز به‌جای پاک‌کردن ردیف، tombstone امن می‌سازد. Reply، Forward محدود به Scope مجاز، واکنش محدود، منشن Participant فعال، سنجاق نقش‌محور و مرور رسانه‌های مجاز پشتیبانی می‌شوند.
 
-پیوست‌ها از زیرساخت مشترک `FileAsset` استفاده می‌کنند. binding پیام فایل را retained می‌کند و دانلود دریافت‌کننده علاوه بر وضعیت فایل، دسترسی جاری به Message/Conversation را بررسی می‌کند. جزئیات مدل، endpointها، constraintها و محدودیت‌های مرحله در `docs/architecture/STEP_7C_ADVANCED_MESSAGING.md` ثبت شده است. Migration جاری Messaging برابر `AddAdvancedMessagingFeatures` و دیتابیس integration test ایزوله برابر `MakanApp_AdvancedMessaging_IntegrationTests_Step7C` است.
+پیوست‌ها از زیرساخت مشترک `FileAsset` استفاده می‌کنند. binding پیام فایل را retained می‌کند و دانلود دریافت‌کننده علاوه بر وضعیت فایل، دسترسی جاری به Message/Conversation را بررسی می‌کند. جزئیات مدل، endpointها، constraintها و محدودیت‌های مرحله در `docs/architecture/STEP_7C_ADVANCED_MESSAGING.md` ثبت شده است.
 
-SignalR، Delta Sync، Delivered/Read cursor، offline queue، search، block/report و moderation همچنان به مراحل بعدی واگذار شده‌اند.
+## همگام‌سازی و realtime پیام‌رسانی — STEP 7D
+
+هر Conversation دو جریان مستقل دارد: `MessageSequence` ترتیب تاریخچه پیام را نگه می‌دارد و `ChangeSequence` تغییرات قابل بازیابی مانند ساخت، ویرایش و حذف پیام، واکنش، سنجاق و عضویت را مرتب می‌کند. mutation، `ChangeEvent` و پیام `RealtimeOutbox` در یک transaction ثبت می‌شوند. Dispatcher فقط بعد از commit یک invalidation سبک SignalR می‌فرستد؛ بنابراین SQL Server مرجع حقیقت باقی می‌ماند و event ازدست‌رفته با Delta قابل بازیابی است.
+
+- `GET /api/v1/conversations/{conversationId}/changes`
+- `POST /api/v1/conversations/{conversationId}/read`
+- `POST /api/v1/conversations/{conversationId}/delivered`
+- Hub: `/hubs/messaging`
+
+cursorهای Delivered و Read به‌صورت monotonic و participant-level ذخیره می‌شوند و summary گفت‌وگو `UnreadCount` را از پیام‌های خوانده‌نشده دیگران محاسبه می‌کند. هر Delta request و Hub subscription دسترسی جاری و session را دوباره بررسی می‌کند. جزئیات transaction، Outbox، reconnect، retention و محدودیت scale-out در `docs/architecture/STEP_7D_MESSAGING_REALTIME_SYNC.md` ثبت شده است. Migration جاری Messaging برابر `AddMessagingRealtimeAndSync` و دیتابیس integration test ایزوله برابر `MakanApp_MessagingSync_IntegrationTests_Step7D` است.
+
+Search، Block، Report، Moderation، Push provider و صف mutation سمت کلاینت همچنان خارج از محدوده‌اند.
 
 ## Visual Studio
 
@@ -271,4 +282,4 @@ SignalR، Delta Sync، Delivered/Read cursor، offline queue، search، block/re
 
 ## محدودیت‌ها
 
-ارسال پیامک واقعی و rate limiting توزیع‌شده هنوز پیاده‌سازی نشده‌اند. ایجاد دعوت توسط مدیر، مدیریت عمومی سازمان و مدیریت عمومی `GuardianRelation` در API ارائه نشده‌اند. Rubric ساختاریافته، بازگرداندن صریح پاسخ برای revision، Exam، Intelligence/LearningEvidence، Notification delivery، provisioning خودکار SystemManagedAcademic و realtime/delta sync در Messaging، Copilot، گزارش‌ها، audit، outbox و deployment هنوز پیاده‌سازی نشده‌اند.
+ارسال پیامک واقعی و rate limiting توزیع‌شده هنوز پیاده‌سازی نشده‌اند. ایجاد دعوت توسط مدیر، مدیریت عمومی سازمان و مدیریت عمومی `GuardianRelation` در API ارائه نشده‌اند. Rubric ساختاریافته، بازگرداندن صریح پاسخ برای revision، Exam، Intelligence/LearningEvidence، Notification delivery، provisioning خودکار SystemManagedAcademic، Copilot، گزارش‌ها، audit عمومی و deployment هنوز پیاده‌سازی نشده‌اند. realtime فعلی Messaging برای اجرای تک‌instance است و scale-out چند instance به راهکار مصوب backplane نیاز دارد.

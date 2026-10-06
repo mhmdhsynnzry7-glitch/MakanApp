@@ -33,6 +33,7 @@ public sealed class ConversationConfiguration : IEntityTypeConfiguration<Convers
                 "CK_Conversations_SystemManagedAcademic",
                 "([ManagementPolicy] <> 2) OR ([Scope] = 2 AND [CreatedByUserId] IS NULL AND [ClientOperationId] IS NULL AND [CreationPayloadHash] IS NULL)");
             table.HasCheckConstraint("CK_Conversations_NextMessageSequence", "[NextMessageSequence] > 0");
+            table.HasCheckConstraint("CK_Conversations_NextChangeSequence", "[NextChangeSequence] > 0");
         });
         builder.HasKey(conversation => conversation.Id);
         builder.Property(conversation => conversation.Title)

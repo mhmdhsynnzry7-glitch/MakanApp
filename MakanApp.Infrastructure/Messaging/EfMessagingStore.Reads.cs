@@ -18,7 +18,7 @@ public sealed partial class EfMessagingStore
         var workspaceType = accessContext.WorkspaceType;
         var organizationId = accessContext.OrganizationId;
         var membershipId = accessContext.MembershipId;
-        var conversations = await (
+        var conversationRows = await (
             from participant in dbContext.ConversationParticipants
             join conversation in dbContext.Conversations
                 on participant.ConversationId equals conversation.Id
@@ -39,13 +39,14 @@ public sealed partial class EfMessagingStore
                        membership.OrganizationId == organizationId &&
                        membership.Status == MembershipStatus.Active &&
                        membership.EndedAtUtc == null))
-            select conversation)
+            select new { Conversation = conversation, Participant = participant })
             .AsNoTracking()
             .ToArrayAsync(cancellationToken);
 
-        var results = new List<ConversationSummaryStoreRecord>(conversations.Length);
-        foreach (var conversation in conversations)
+        var results = new List<ConversationSummaryStoreRecord>(conversationRows.Length);
+        foreach (var row in conversationRows)
         {
+            var conversation = row.Conversation;
             SafeMessagingIdentityRecord? identity = null;
             if (conversation.Type == ConversationType.Direct)
             {
@@ -59,10 +60,16 @@ public sealed partial class EfMessagingStore
                 .FirstOrDefaultAsync(cancellationToken);
             results.Add(new ConversationSummaryStoreRecord(
                 conversation,
+                row.Participant,
                 identity,
                 CreatePreview(lastMessage?.Text),
                 lastMessage?.SentAtUtc,
-                lastMessage?.Sequence));
+                lastMessage?.Sequence,
+                await GetUnreadCountAsync(
+                    conversation.Id,
+                    userId,
+                    row.Participant.LastReadMessageSequence,
+                    cancellationToken)));
         }
 
         return results

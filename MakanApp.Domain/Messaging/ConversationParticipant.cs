@@ -29,6 +29,9 @@ public sealed class ConversationParticipant
     public DateTime JoinedAtUtc { get; private set; }
     public DateTime? EndedAtUtc { get; private set; }
     public Guid? EndedByUserId { get; private set; }
+    public long LastDeliveredMessageSequence { get; private set; }
+    public long LastReadMessageSequence { get; private set; }
+    public DateTime? CursorUpdatedAtUtc { get; private set; }
     public byte[] RowVersion { get; private set; } = [];
 
     public bool IsActive => Status == ConversationParticipantStatus.Active && !EndedAtUtc.HasValue;
@@ -85,6 +88,33 @@ public sealed class ConversationParticipant
         Role = role;
     }
 
+    public bool AdvanceDelivery(long upToMessageSequence, DateTime updatedAtUtc)
+    {
+        ValidateCursorInput(upToMessageSequence, updatedAtUtc);
+        if (upToMessageSequence <= LastDeliveredMessageSequence)
+        {
+            return false;
+        }
+
+        LastDeliveredMessageSequence = upToMessageSequence;
+        CursorUpdatedAtUtc = updatedAtUtc;
+        return true;
+    }
+
+    public bool AdvanceRead(long upToMessageSequence, DateTime updatedAtUtc)
+    {
+        ValidateCursorInput(upToMessageSequence, updatedAtUtc);
+        if (upToMessageSequence <= LastReadMessageSequence)
+        {
+            return false;
+        }
+
+        LastReadMessageSequence = upToMessageSequence;
+        LastDeliveredMessageSequence = Math.Max(LastDeliveredMessageSequence, upToMessageSequence);
+        CursorUpdatedAtUtc = updatedAtUtc;
+        return true;
+    }
+
     private void End(
         ConversationParticipantStatus status,
         Guid endedByUserId,
@@ -108,5 +138,18 @@ public sealed class ConversationParticipant
         Status = status;
         EndedAtUtc = endedAtUtc;
         EndedByUserId = endedByUserId;
+    }
+
+    private static void ValidateCursorInput(long upToMessageSequence, DateTime updatedAtUtc)
+    {
+        if (upToMessageSequence <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(upToMessageSequence));
+        }
+
+        if (updatedAtUtc.Kind != DateTimeKind.Utc)
+        {
+            throw new ArgumentException("زمان به‌روزرسانی نشانگر باید UTC باشد.", nameof(updatedAtUtc));
+        }
     }
 }

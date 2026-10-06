@@ -29,7 +29,10 @@ public sealed record ConversationSummaryResult(
     SafeMessagingIdentityResult? OtherParticipant,
     string? LastMessagePreview,
     DateTime? LastMessageAtUtc,
-    long? LastMessageSequence);
+    long? LastMessageSequence,
+    long LastDeliveredMessageSequence,
+    long LastReadMessageSequence,
+    int UnreadCount);
 
 public sealed record GetConversationMessagesQuery(
     long? BeforeSequence,
@@ -137,6 +140,49 @@ public sealed record ConversationMediaItemResult(
 public sealed record ConversationMediaPageResult(
     IReadOnlyCollection<ConversationMediaItemResult> Items,
     long? NextBeforeSequence);
+
+public sealed record GetConversationChangesQuery(
+    string? AfterCursor,
+    int? Limit);
+
+public sealed record ConversationChangeResult(
+    Guid ChangeId,
+    MessagingChangeType Type,
+    Guid ResourceId,
+    string? ResourceVersion,
+    string Cursor,
+    DateTime OccurredAtUtc,
+    Guid? ActorUserId,
+    int PayloadVersion);
+
+public sealed record ConversationChangePageResult(
+    IReadOnlyCollection<ConversationChangeResult> Changes,
+    string NextCursor,
+    bool HasMore);
+
+public sealed record AdvanceConversationCursorCommand(long UpToMessageSequence);
+
+public sealed record ConversationCursorStateResult(
+    Guid ConversationId,
+    long LastDeliveredMessageSequence,
+    long LastReadMessageSequence,
+    int UnreadCount,
+    DateTime? UpdatedAtUtc,
+    string Version);
+
+public sealed record MessagingRealtimeNotification(
+    Guid ConversationId,
+    MessagingChangeType Type,
+    Guid ResourceId,
+    string? ResourceVersion,
+    string Cursor,
+    DateTime OccurredAtUtc,
+    int PayloadVersion);
+
+public static class MessagingRealtimeEventNames
+{
+    public const string ConversationChanged = "ConversationChanged";
+}
 
 public enum MessageReceiptStatus
 {

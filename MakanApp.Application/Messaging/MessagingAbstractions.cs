@@ -16,10 +16,12 @@ public sealed record DirectConversationStoreResult(
 
 public sealed record ConversationSummaryStoreRecord(
     Conversation Conversation,
+    ConversationParticipant Participant,
     SafeMessagingIdentityRecord? OtherParticipant,
     string? LastMessagePreview,
     DateTime? LastMessageAtUtc,
-    long? LastMessageSequence);
+    long? LastMessageSequence,
+    int UnreadCount);
 
 public sealed record MessageReplySummaryStoreRecord(
     Message Message);
@@ -64,6 +66,15 @@ public sealed record ConversationMediaStoreRecord(
 public sealed record ConversationMediaPageStoreResult(
     IReadOnlyCollection<ConversationMediaStoreRecord> Items,
     long? NextBeforeSequence);
+
+public sealed record ConversationChangePageStoreResult(
+    IReadOnlyCollection<MessagingChangeEvent> Changes,
+    long NextChangeSequence,
+    bool HasMore);
+
+public sealed record ConversationCursorStoreResult(
+    ConversationParticipant Participant,
+    int UnreadCount);
 
 public interface IMessagingStore
 {
@@ -170,6 +181,53 @@ public interface IMessagingStore
         long? beforeSequence,
         int limit,
         CancellationToken cancellationToken);
+
+    Task<ConversationChangePageStoreResult> GetConversationChangesAsync(
+        Guid userId,
+        Guid conversationId,
+        AccessContext accessContext,
+        long afterChangeSequence,
+        int limit,
+        CancellationToken cancellationToken);
+
+    Task<ConversationCursorStoreResult> AdvanceReadCursorAsync(
+        Guid userId,
+        Guid conversationId,
+        AccessContext accessContext,
+        long upToMessageSequence,
+        DateTime nowUtc,
+        CancellationToken cancellationToken);
+
+    Task<ConversationCursorStoreResult> AdvanceDeliveryCursorAsync(
+        Guid userId,
+        Guid conversationId,
+        AccessContext accessContext,
+        long upToMessageSequence,
+        DateTime nowUtc,
+        CancellationToken cancellationToken);
+
+    Task EnsureRealtimeAccessAsync(
+        Guid userId,
+        Guid conversationId,
+        AccessContext accessContext,
+        CancellationToken cancellationToken);
+}
+
+public interface IMessagingRealtimeNotifier
+{
+    Task NotifyConversationChangedAsync(
+        MessagingRealtimeNotification notification,
+        Guid? audienceUserId,
+        CancellationToken cancellationToken);
+}
+
+public interface IMessagingRealtimeAudienceResolver
+{
+    Task<IReadOnlyCollection<Guid>> GetActiveSessionIdsAsync(
+        Guid conversationId,
+        Guid? audienceUserId,
+        DateTime nowUtc,
+        CancellationToken cancellationToken);
 }
 
 public interface IMessagingService
@@ -265,5 +323,32 @@ public interface IMessagingService
         Guid sessionId,
         Guid conversationId,
         GetConversationMediaQuery query,
+        CancellationToken cancellationToken);
+
+    Task<ConversationChangePageResult> GetConversationChangesAsync(
+        Guid userId,
+        Guid sessionId,
+        Guid conversationId,
+        GetConversationChangesQuery query,
+        CancellationToken cancellationToken);
+
+    Task<ConversationCursorStateResult> MarkConversationReadAsync(
+        Guid userId,
+        Guid sessionId,
+        Guid conversationId,
+        AdvanceConversationCursorCommand command,
+        CancellationToken cancellationToken);
+
+    Task<ConversationCursorStateResult> AcknowledgeConversationDeliveryAsync(
+        Guid userId,
+        Guid sessionId,
+        Guid conversationId,
+        AdvanceConversationCursorCommand command,
+        CancellationToken cancellationToken);
+
+    Task AuthorizeRealtimeSubscriptionAsync(
+        Guid userId,
+        Guid sessionId,
+        Guid conversationId,
         CancellationToken cancellationToken);
 }

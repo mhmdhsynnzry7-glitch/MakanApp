@@ -41,4 +41,8 @@ public static class MessagingErrorCodes
     public const string MentionNotAllowed = "MENTION_NOT_ALLOWED";
     public const string PinNotAllowed = "PIN_NOT_ALLOWED";
     public const string FileNotAllowed = "FILE_NOT_ALLOWED";
+    public const string ChangeCursorInvalid = "CHANGE_CURSOR_INVALID";
+    public const string ReadCursorInvalid = "READ_CURSOR_INVALID";
+    public const string DeliveryCursorInvalid = "DELIVERY_CURSOR_INVALID";
+    public const string RealtimeSubscriptionNotAllowed = "REALTIME_SUBSCRIPTION_NOT_ALLOWED";
 }

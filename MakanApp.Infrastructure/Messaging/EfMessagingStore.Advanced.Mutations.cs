@@ -64,7 +64,17 @@ public sealed partial class EfMessagingStore
             userId,
             nowUtc));
         await SaveAdvancedAsync(cancellationToken);
+        await AppendChangeAsync(
+            conversation,
+            MessagingChangeType.MessageEdited,
+            message.Id,
+            VersionOf(message.RowVersion),
+            nowUtc,
+            userId,
+            null,
+            cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        outboxWakeSignal.Signal();
         return message;
     }
 
@@ -104,7 +114,17 @@ public sealed partial class EfMessagingStore
 
         message.Delete(userId, nowUtc);
         await SaveAdvancedAsync(cancellationToken);
+        await AppendChangeAsync(
+            conversation,
+            MessagingChangeType.MessageDeleted,
+            message.Id,
+            VersionOf(message.RowVersion),
+            nowUtc,
+            userId,
+            null,
+            cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        outboxWakeSignal.Signal();
         return message;
     }
 
@@ -120,7 +140,7 @@ public sealed partial class EfMessagingStore
         await using var transaction = await dbContext.Database.BeginTransactionAsync(
             IsolationLevel.Serializable,
             cancellationToken);
-        var (_, _, message) = await LoadMessageMutationContextAsync(
+        var (conversation, _, message) = await LoadMessageMutationContextAsync(
             userId,
             conversationId,
             messageId,
@@ -146,7 +166,17 @@ public sealed partial class EfMessagingStore
         var created = MessageReaction.Create(messageId, userId, reaction, nowUtc);
         dbContext.MessageReactions.Add(created);
         await SaveAdvancedAsync(cancellationToken);
+        await AppendChangeAsync(
+            conversation,
+            MessagingChangeType.ReactionChanged,
+            messageId,
+            VersionOf(created.RowVersion),
+            nowUtc,
+            userId,
+            null,
+            cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        outboxWakeSignal.Signal();
         return created;
     }
 
@@ -162,7 +192,7 @@ public sealed partial class EfMessagingStore
         await using var transaction = await dbContext.Database.BeginTransactionAsync(
             IsolationLevel.Serializable,
             cancellationToken);
-        await LoadMessageMutationContextAsync(
+        var (conversation, _, _) = await LoadMessageMutationContextAsync(
             userId,
             conversationId,
             messageId,
@@ -175,9 +205,22 @@ public sealed partial class EfMessagingStore
         {
             existing.Remove(nowUtc);
             await SaveAdvancedAsync(cancellationToken);
+            await AppendChangeAsync(
+                conversation,
+                MessagingChangeType.ReactionChanged,
+                messageId,
+                VersionOf(existing.RowVersion),
+                nowUtc,
+                userId,
+                null,
+                cancellationToken);
         }
 
         await transaction.CommitAsync(cancellationToken);
+        if (existing is not null && existing.ReactionType == reaction)
+        {
+            outboxWakeSignal.Signal();
+        }
     }
 
     public async Task<ConversationPin> PinMessageAsync(
@@ -215,7 +258,17 @@ public sealed partial class EfMessagingStore
         var pin = ConversationPin.Create(conversationId, messageId, userId, nowUtc);
         dbContext.ConversationPins.Add(pin);
         await SaveAdvancedAsync(cancellationToken);
+        await AppendChangeAsync(
+            conversation,
+            MessagingChangeType.PinChanged,
+            messageId,
+            VersionOf(pin.RowVersion),
+            nowUtc,
+            userId,
+            null,
+            cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        outboxWakeSignal.Signal();
         return pin;
     }
 
@@ -242,9 +295,22 @@ public sealed partial class EfMessagingStore
         {
             pin.Unpin(userId, nowUtc);
             await SaveAdvancedAsync(cancellationToken);
+            await AppendChangeAsync(
+                conversation,
+                MessagingChangeType.PinChanged,
+                messageId,
+                VersionOf(pin.RowVersion),
+                nowUtc,
+                userId,
+                null,
+                cancellationToken);
         }
 
         await transaction.CommitAsync(cancellationToken);
+        if (pin is not null)
+        {
+            outboxWakeSignal.Signal();
+        }
         return pin;
     }
 

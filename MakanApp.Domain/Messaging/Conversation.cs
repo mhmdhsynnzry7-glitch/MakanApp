@@ -23,6 +23,7 @@ public sealed class Conversation
     public Guid? ClientOperationId { get; private set; }
     public byte[]? CreationPayloadHash { get; private set; }
     public long NextMessageSequence { get; private set; }
+    public long NextChangeSequence { get; private set; }
     public ConversationStatus Status { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime? ArchivedAtUtc { get; private set; }
@@ -48,6 +49,7 @@ public sealed class Conversation
             DirectUserHighId = pair.HigherUserId,
             ManagementPolicy = ConversationManagementPolicy.None,
             NextMessageSequence = 1,
+            NextChangeSequence = 1,
             Status = ConversationStatus.Active,
             CreatedAtUtc = createdAtUtc
         };
@@ -90,6 +92,7 @@ public sealed class Conversation
             ClientOperationId = clientOperationId,
             CreationPayloadHash = creationPayloadHash.ToArray(),
             NextMessageSequence = 1,
+            NextChangeSequence = 1,
             Status = ConversationStatus.Active,
             CreatedAtUtc = createdAtUtc
         };
@@ -115,6 +118,7 @@ public sealed class Conversation
             Description = NormalizeDescription(description),
             ManagementPolicy = ConversationManagementPolicy.SystemManagedAcademic,
             NextMessageSequence = 1,
+            NextChangeSequence = 1,
             Status = ConversationStatus.Active,
             CreatedAtUtc = createdAtUtc
         };
@@ -146,6 +150,18 @@ public sealed class Conversation
 
         var allocated = NextMessageSequence;
         NextMessageSequence++;
+        return allocated;
+    }
+
+    public long AllocateNextChangeSequence()
+    {
+        if (NextChangeSequence == long.MaxValue)
+        {
+            throw new InvalidOperationException("ظرفیت ترتیب تغییرات گفتگو به پایان رسیده است.");
+        }
+
+        var allocated = NextChangeSequence;
+        NextChangeSequence++;
         return allocated;
     }
 

@@ -12,7 +12,8 @@ namespace MakanApp.Infrastructure.Messaging;
 public sealed partial class EfMessagingStore(
     MakanDbContext dbContext,
     ICommunicationEligibilityPolicy eligibilityPolicy,
-    IConversationManagementPolicy managementPolicy) : IMessagingStore, IConversationManagementStore
+    IConversationManagementPolicy managementPolicy,
+    MessagingOutboxWakeSignal outboxWakeSignal) : IMessagingStore, IConversationManagementStore
 {
     public Task<DirectConversationStoreResult> StartOrGetDirectConversationAsync(
         Guid actorUserId,
@@ -86,7 +87,17 @@ public sealed partial class EfMessagingStore(
                 ConversationParticipant.CreateActive(conversation.Id, pair.LowerUserId, nowUtc),
                 ConversationParticipant.CreateActive(conversation.Id, pair.HigherUserId, nowUtc));
             await dbContext.SaveChangesAsync(cancellationToken);
+            await AppendChangeAsync(
+                conversation,
+                MessagingChangeType.ConversationChanged,
+                conversation.Id,
+                null,
+                nowUtc,
+                actorUserId,
+                null,
+                cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+            outboxWakeSignal.Signal();
             return new DirectConversationStoreResult(conversation, identity, false);
         }
         catch (DbUpdateException exception) when (IsUniqueConflict(exception))

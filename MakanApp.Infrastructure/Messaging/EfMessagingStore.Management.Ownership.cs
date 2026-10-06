@@ -21,7 +21,7 @@ public sealed partial class EfMessagingStore
         CancellationToken cancellationToken)
     {
         await using var transaction = await BeginManagementTransactionAsync(cancellationToken);
-        var (_, actor) = await LoadManagedForMutationAsync(
+        var (conversation, actor) = await LoadManagedForMutationAsync(
             actorUserId,
             conversationId,
             accessContext,
@@ -53,7 +53,17 @@ public sealed partial class EfMessagingStore
             nowUtc);
         dbContext.ConversationOwnershipTransfers.Add(transfer);
         await SaveManagementAsync(cancellationToken);
+        await AppendChangeAsync(
+            conversation,
+            MessagingChangeType.ConversationChanged,
+            transfer.Id,
+            VersionOf(transfer.RowVersion),
+            nowUtc,
+            actorUserId,
+            null,
+            cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        outboxWakeSignal.Signal();
         return new OwnershipTransferStoreResult(transfer, false);
     }
 
@@ -107,10 +117,28 @@ public sealed partial class EfMessagingStore
             throw ManagementNotAllowed();
         }
 
+        var changed = conversation.Status != ConversationStatus.Archived;
         conversation.Archive(nowUtc);
-        await SaveManagementAsync(cancellationToken);
+        if (changed)
+        {
+            await SaveManagementAsync(cancellationToken);
+            await AppendChangeAsync(
+                conversation,
+                MessagingChangeType.ConversationChanged,
+                conversation.Id,
+                null,
+                nowUtc,
+                actorUserId,
+                null,
+                cancellationToken);
+        }
         var result = await LoadManagedResultAsync(conversation, false, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        if (changed)
+        {
+            outboxWakeSignal.Signal();
+        }
+
         return result;
     }
 
@@ -175,7 +203,17 @@ public sealed partial class EfMessagingStore
         }
 
         await SaveManagementAsync(cancellationToken);
+        await AppendChangeAsync(
+            conversation,
+            accept ? MessagingChangeType.ParticipantChanged : MessagingChangeType.ConversationChanged,
+            accept ? to.Id : transfer.Id,
+            VersionOf(accept ? to.RowVersion : transfer.RowVersion),
+            nowUtc,
+            actorUserId,
+            null,
+            cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        outboxWakeSignal.Signal();
         return new OwnershipTransferStoreResult(transfer, false);
     }
 

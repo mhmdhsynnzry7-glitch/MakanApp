@@ -209,6 +209,46 @@ public sealed class ConversationsController(
             new GetConversationMediaQuery(kind, beforeSequence, limit),
             cancellationToken));
 
+    [HttpGet("{conversationId:guid}/changes")]
+    [ProducesResponseType<ConversationChangePageResult>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<ConversationChangePageResult>> GetChanges(
+        Guid conversationId,
+        [FromQuery] string? afterCursor,
+        [FromQuery] int? limit,
+        CancellationToken cancellationToken) =>
+        Ok(await messagingService.GetConversationChangesAsync(
+            AuthenticatedSession.GetUserId(User),
+            AuthenticatedSession.GetSessionId(User),
+            conversationId,
+            new GetConversationChangesQuery(afterCursor, limit),
+            cancellationToken));
+
+    [HttpPost("{conversationId:guid}/read")]
+    [ProducesResponseType<ConversationCursorStateResult>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<ConversationCursorStateResult>> MarkRead(
+        Guid conversationId,
+        AdvanceConversationCursorCommand command,
+        CancellationToken cancellationToken) =>
+        Ok(await messagingService.MarkConversationReadAsync(
+            AuthenticatedSession.GetUserId(User),
+            AuthenticatedSession.GetSessionId(User),
+            conversationId,
+            command,
+            cancellationToken));
+
+    [HttpPost("{conversationId:guid}/delivered")]
+    [ProducesResponseType<ConversationCursorStateResult>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<ConversationCursorStateResult>> AcknowledgeDelivery(
+        Guid conversationId,
+        AdvanceConversationCursorCommand command,
+        CancellationToken cancellationToken) =>
+        Ok(await messagingService.AcknowledgeConversationDeliveryAsync(
+            AuthenticatedSession.GetUserId(User),
+            AuthenticatedSession.GetSessionId(User),
+            conversationId,
+            command,
+            cancellationToken));
+
     [HttpGet("{conversationId:guid}")]
     [ProducesResponseType<ManagedConversationResult>(StatusCodes.Status200OK)]
     public async Task<ActionResult<ManagedConversationResult>> GetDetails(

@@ -63,6 +63,10 @@ public static class DependencyInjection
             serviceProvider.GetRequiredService<EfMessagingStore>());
         services.AddScoped<IMessagingService, MessagingService>();
         services.AddScoped<IConversationManagementService, ConversationManagementService>();
+        services.AddScoped<IMessagingRealtimeAudienceResolver, MessagingRealtimeAudienceResolver>();
+        services.AddSingleton<MessagingOutboxWakeSignal>();
+        services.AddScoped<MessagingRealtimeOutboxProcessor>();
+        services.AddHostedService<MessagingRealtimeOutboxDispatcher>();
         services.AddScoped<IFileAssetStore, EfFileAssetStore>();
         services.AddScoped<IFileAssetBoundAccessResolver, EfFileAssetBoundAccessResolver>();
         services.AddScoped<IStorageService, StorageService>();
@@ -187,7 +191,15 @@ public static class DependencyInjection
             MaximumMentionsPerMessage = ReadPositiveInt(
                 configuration,
                 $"{MessagingOptions.SectionName}:MaximumMentionsPerMessage",
-                50)
+                50),
+            DefaultChangeLimit = ReadPositiveInt(
+                configuration,
+                $"{MessagingOptions.SectionName}:DefaultChangeLimit",
+                100),
+            MaximumChangeLimit = ReadPositiveInt(
+                configuration,
+                $"{MessagingOptions.SectionName}:MaximumChangeLimit",
+                200)
         };
     }
 

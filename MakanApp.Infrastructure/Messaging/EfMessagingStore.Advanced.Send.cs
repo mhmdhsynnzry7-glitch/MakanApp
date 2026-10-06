@@ -49,7 +49,7 @@ public sealed partial class EfMessagingStore
             accessContext,
             nowUtc,
             cancellationToken);
-        var message = await CreateMessageAsync(
+        var created = await CreateMessageAsync(
             conversation,
             participant,
             userId,
@@ -58,8 +58,18 @@ public sealed partial class EfMessagingStore
             nowUtc,
             cancellationToken);
         await SaveAdvancedAsync(cancellationToken);
+        await AppendChangeAsync(
+            conversation,
+            MessagingChangeType.MessageCreated,
+            created.Message.Id,
+            VersionOf(created.Message.RowVersion),
+            nowUtc,
+            userId,
+            null,
+            cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return message;
+        outboxWakeSignal.Signal();
+        return created.Message;
     }
 
     public async Task<Message> ForwardMessageAsync(
@@ -148,12 +158,29 @@ public sealed partial class EfMessagingStore
             maximumTextLength,
             nowUtc,
             cancellationToken);
-        await SaveAdvancedAsync(cancellationToken);
+        if (forwarded.Created)
+        {
+            await SaveAdvancedAsync(cancellationToken);
+            await AppendChangeAsync(
+                destinationConversation,
+                MessagingChangeType.MessageCreated,
+                forwarded.Message.Id,
+                VersionOf(forwarded.Message.RowVersion),
+                nowUtc,
+                userId,
+                null,
+                cancellationToken);
+        }
         await transaction.CommitAsync(cancellationToken);
-        return forwarded;
+        if (forwarded.Created)
+        {
+            outboxWakeSignal.Signal();
+        }
+
+        return forwarded.Message;
     }
 
-    private async Task<Message> CreateMessageAsync(
+    private async Task<(Message Message, bool Created)> CreateMessageAsync(
         Conversation conversation,
         ConversationParticipant participant,
         Guid userId,
@@ -168,7 +195,7 @@ public sealed partial class EfMessagingStore
         if (existing is not null)
         {
             await EnsureRetryMatchesAsync(existing, command, cancellationToken);
-            return existing;
+            return (existing, false);
         }
 
         if (command.ReplyToMessageId.HasValue)
@@ -273,7 +300,7 @@ public sealed partial class EfMessagingStore
                 nowUtc));
         }
 
-        return message;
+        return (message, true);
     }
 
     private async Task EnsureRetryMatchesAsync(

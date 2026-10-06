@@ -17,6 +17,12 @@ public sealed class ConversationParticipantConfiguration :
             table.HasCheckConstraint(
                 "CK_ConversationParticipants_Lifecycle",
                 "([Status] = 1 AND [EndedAtUtc] IS NULL AND [EndedByUserId] IS NULL) OR ([Status] IN (2, 3) AND [EndedAtUtc] IS NOT NULL AND [EndedByUserId] IS NOT NULL)");
+            table.HasCheckConstraint(
+                "CK_ConversationParticipants_Cursors",
+                "[LastDeliveredMessageSequence] >= 0 AND [LastReadMessageSequence] >= 0 AND [LastReadMessageSequence] <= [LastDeliveredMessageSequence]");
+            table.HasCheckConstraint(
+                "CK_ConversationParticipants_CursorTimestamp",
+                "([LastDeliveredMessageSequence] = 0 AND [LastReadMessageSequence] = 0 AND [CursorUpdatedAtUtc] IS NULL) OR ([LastDeliveredMessageSequence] > 0 AND [CursorUpdatedAtUtc] IS NOT NULL)");
         });
         builder.HasKey(participant => participant.Id);
         builder.HasAlternateKey(participant => new
@@ -27,6 +33,7 @@ public sealed class ConversationParticipantConfiguration :
         }).HasName("UQ_ConversationParticipants_Id_Conversation_User");
         builder.Property(participant => participant.JoinedAtUtc).HasColumnType("datetime2(7)");
         builder.Property(participant => participant.EndedAtUtc).HasColumnType("datetime2(7)");
+        builder.Property(participant => participant.CursorUpdatedAtUtc).HasColumnType("datetime2(7)");
         builder.Property(participant => participant.RowVersion).IsRowVersion();
 
         builder.HasIndex(participant => new { participant.UserId, participant.Status });

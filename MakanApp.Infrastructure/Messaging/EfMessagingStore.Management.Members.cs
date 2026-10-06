@@ -71,15 +71,25 @@ public sealed partial class EfMessagingStore
             accessContext,
             nowUtc,
             cancellationToken);
-        dbContext.ConversationParticipants.Add(
-            ConversationParticipant.CreateActive(
+        var added = ConversationParticipant.CreateActive(
                 conversation.Id,
                 targetUserId,
                 nowUtc,
-                ConversationParticipantRole.Member));
+                ConversationParticipantRole.Member);
+        dbContext.ConversationParticipants.Add(added);
         await SaveManagementAsync(cancellationToken);
+        await AppendChangeAsync(
+            conversation,
+            MessagingChangeType.ParticipantChanged,
+            added.Id,
+            VersionOf(added.RowVersion),
+            nowUtc,
+            actorUserId,
+            null,
+            cancellationToken);
         var result = await LoadManagedResultAsync(conversation, false, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        outboxWakeSignal.Signal();
         return result;
     }
 
@@ -106,8 +116,18 @@ public sealed partial class EfMessagingStore
 
         target.Remove(actorUserId, nowUtc);
         await SaveManagementAsync(cancellationToken);
+        await AppendChangeAsync(
+            conversation,
+            MessagingChangeType.ParticipantChanged,
+            target.Id,
+            VersionOf(target.RowVersion),
+            nowUtc,
+            actorUserId,
+            null,
+            cancellationToken);
         var result = await LoadManagedResultAsync(conversation, false, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        outboxWakeSignal.Signal();
         return result;
     }
 
@@ -133,8 +153,18 @@ public sealed partial class EfMessagingStore
 
         actor.Leave(nowUtc);
         await SaveManagementAsync(cancellationToken);
+        await AppendChangeAsync(
+            conversation,
+            MessagingChangeType.ParticipantChanged,
+            actor.Id,
+            VersionOf(actor.RowVersion),
+            nowUtc,
+            actorUserId,
+            null,
+            cancellationToken);
         var result = await LoadManagedResultAsync(conversation, false, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        outboxWakeSignal.Signal();
         return result;
     }
 
@@ -147,7 +177,6 @@ public sealed partial class EfMessagingStore
         DateTime nowUtc,
         CancellationToken cancellationToken)
     {
-        _ = nowUtc;
         await using var transaction = await BeginManagementTransactionAsync(cancellationToken);
         var (conversation, actor) = await LoadManagedForMutationAsync(
             actorUserId,
@@ -163,8 +192,18 @@ public sealed partial class EfMessagingStore
 
         target.ChangeRole(role);
         await SaveManagementAsync(cancellationToken);
+        await AppendChangeAsync(
+            conversation,
+            MessagingChangeType.ParticipantChanged,
+            target.Id,
+            VersionOf(target.RowVersion),
+            nowUtc,
+            actorUserId,
+            null,
+            cancellationToken);
         var result = await LoadManagedResultAsync(conversation, false, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        outboxWakeSignal.Signal();
         return result;
     }
 

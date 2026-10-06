@@ -3,7 +3,9 @@ using System.Threading.RateLimiting;
 using System.Text.Json.Serialization;
 using MakanApp.Api.Authentication;
 using MakanApp.Api.Errors;
+using MakanApp.Api.Realtime;
 using MakanApp.Application.Identity;
+using MakanApp.Application.Messaging;
 using MakanApp.Application.Storage;
 using MakanApp.Infrastructure;
 using Microsoft.AspNetCore.Authentication;
@@ -23,6 +25,10 @@ builder.Services
         SessionAuthenticationDefaults.Scheme,
         _ => { });
 builder.Services.AddAuthorization();
+builder.Services.AddSignalR().AddJsonProtocol(options =>
+{
+    options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -72,6 +78,9 @@ builder.Services.AddHealthChecks();
 builder.Services.AddInfrastructure(
     builder.Configuration,
     builder.Environment.EnvironmentName);
+builder.Services.AddScoped<SignalRMessagingRealtimeNotifier>();
+builder.Services.AddScoped<IMessagingRealtimeNotifier>(serviceProvider =>
+    serviceProvider.GetRequiredService<SignalRMessagingRealtimeNotifier>());
 builder.Services.AddOptions<FormOptions>().Configure<StorageOptions>((formOptions, storageOptions) =>
 {
     formOptions.MultipartBodyLengthLimit = checked(storageOptions.MaxFileSizeBytes + 65_536);
@@ -101,6 +110,7 @@ app.UseAuthorization();
 
 app.MapHealthChecks("/health");
 app.MapControllers();
+app.MapHub<MessagingHub>("/hubs/messaging");
 
 app.Run();
 
