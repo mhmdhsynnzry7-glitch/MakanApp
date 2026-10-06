@@ -61,8 +61,11 @@ public static class DependencyInjection
             serviceProvider.GetRequiredService<EfMessagingStore>());
         services.AddScoped<IConversationManagementStore>(serviceProvider =>
             serviceProvider.GetRequiredService<EfMessagingStore>());
+        services.AddScoped<IMessagingSafetyStore>(serviceProvider =>
+            serviceProvider.GetRequiredService<EfMessagingStore>());
         services.AddScoped<IMessagingService, MessagingService>();
         services.AddScoped<IConversationManagementService, ConversationManagementService>();
+        services.AddScoped<IMessagingSafetyService, MessagingSafetyService>();
         services.AddScoped<IMessagingRealtimeAudienceResolver, MessagingRealtimeAudienceResolver>();
         services.AddSingleton<MessagingOutboxWakeSignal>();
         services.AddScoped<MessagingRealtimeOutboxProcessor>();
@@ -199,7 +202,19 @@ public static class DependencyInjection
             MaximumChangeLimit = ReadPositiveInt(
                 configuration,
                 $"{MessagingOptions.SectionName}:MaximumChangeLimit",
-                200)
+                200),
+            MaximumSearchQueryLength = ReadPositiveInt(
+                configuration,
+                $"{MessagingOptions.SectionName}:MaximumSearchQueryLength",
+                200),
+            DefaultSearchLimit = ReadPositiveInt(
+                configuration,
+                $"{MessagingOptions.SectionName}:DefaultSearchLimit",
+                20),
+            MaximumSearchLimit = ReadPositiveInt(
+                configuration,
+                $"{MessagingOptions.SectionName}:MaximumSearchLimit",
+                50)
         };
     }
 

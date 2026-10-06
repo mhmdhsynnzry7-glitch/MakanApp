@@ -13,7 +13,10 @@ public sealed partial class EfMessagingStore(
     MakanDbContext dbContext,
     ICommunicationEligibilityPolicy eligibilityPolicy,
     IConversationManagementPolicy managementPolicy,
-    MessagingOutboxWakeSignal outboxWakeSignal) : IMessagingStore, IConversationManagementStore
+    MessagingOutboxWakeSignal outboxWakeSignal) :
+    IMessagingStore,
+    IConversationManagementStore,
+    IMessagingSafetyStore
 {
     public Task<DirectConversationStoreResult> StartOrGetDirectConversationAsync(
         Guid actorUserId,
@@ -50,6 +53,11 @@ public sealed partial class EfMessagingStore(
             await using var transaction = await dbContext.Database.BeginTransactionAsync(
                 IsolationLevel.Serializable,
                 cancellationToken);
+            if (await HasEffectiveUserBlockAsync(actorUserId, targetUserId, cancellationToken))
+            {
+                throw RecipientNotAvailable();
+            }
+
             var facts = await LoadEligibilityFactsAsync(
                 actorUserId,
                 targetUserId,

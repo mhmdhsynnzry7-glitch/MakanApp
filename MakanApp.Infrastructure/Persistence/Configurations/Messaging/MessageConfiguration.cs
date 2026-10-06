@@ -26,6 +26,8 @@ public sealed class MessageConfiguration : IEntityTypeConfiguration<Message>
             .HasName("UQ_Messages_Id_Conversation");
         builder.Property(message => message.Text)
             .HasMaxLength(Message.StorageMaximumTextLength);
+        builder.Property(message => message.SearchText)
+            .HasMaxLength(Message.StorageMaximumTextLength);
         builder.Property(message => message.SentAtUtc).HasColumnType("datetime2(7)");
         builder.Property(message => message.EditedAtUtc).HasColumnType("datetime2(7)");
         builder.Property(message => message.DeletedAtUtc).HasColumnType("datetime2(7)");
@@ -46,6 +48,8 @@ public sealed class MessageConfiguration : IEntityTypeConfiguration<Message>
             .HasDatabaseName("IX_Messages_ReplyToMessageId");
         builder.HasIndex(message => message.ForwardedFromMessageId)
             .HasDatabaseName("IX_Messages_ForwardedFromMessageId");
+        builder.HasIndex(message => new { message.ConversationId, message.SentAtUtc, message.Id })
+            .HasDatabaseName("IX_Messages_Search_Access");
 
         builder.HasOne<Conversation>()
             .WithMany()

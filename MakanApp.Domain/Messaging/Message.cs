@@ -29,6 +29,7 @@ public sealed class Message
         Sequence = sequence;
         Kind = kind;
         Text = text;
+        SearchText = MessageSearchText.Normalize(text);
         ReplyToMessageId = replyToMessageId;
         ForwardedFromMessageId = forwardedFromMessageId;
         CurrentRevisionNumber = 1;
@@ -43,6 +44,7 @@ public sealed class Message
     public long Sequence { get; private set; }
     public MessageKind Kind { get; private set; }
     public string? Text { get; private set; }
+    public string? SearchText { get; private set; }
     public Guid? ReplyToMessageId { get; private set; }
     public Guid? ForwardedFromMessageId { get; private set; }
     public int CurrentRevisionNumber { get; private set; }
@@ -148,6 +150,7 @@ public sealed class Message
         }
 
         Text = text;
+        SearchText = MessageSearchText.Normalize(text);
         EditedAtUtc = editedAtUtc;
         CurrentRevisionNumber++;
         return CurrentRevisionNumber;
@@ -172,6 +175,7 @@ public sealed class Message
         }
 
         Text = null;
+        SearchText = null;
         DeletedAtUtc = deletedAtUtc;
         DeletedByUserId = deletedByUserId;
     }

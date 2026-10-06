@@ -24,7 +24,7 @@ public sealed partial class MakanAppWebApplicationFactory :
     private const string ConnectionStringEnvironmentVariable =
         "ConnectionStrings__MakanDatabase";
 
-    public const string DatabaseName = "MakanApp_MessagingSync_IntegrationTests_Step7D";
+    public const string DatabaseName = "MakanApp_MessagingSafety_IntegrationTests_Step7E";
 
     private const string TestConnectionString =
         "Server=(localdb)\\MSSQLLocalDB;Database=" + DatabaseName + ";Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";

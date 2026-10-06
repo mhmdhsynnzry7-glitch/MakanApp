@@ -416,6 +416,13 @@ public sealed partial class EfMessagingStore
         }
 
         var targetUserId = conversation.GetDirectPair().Other(userId);
+        if (await HasEffectiveUserBlockAsync(userId, targetUserId, cancellationToken))
+        {
+            throw new MessagingException(
+                MessagingErrorCodes.MessageNotAllowed,
+                "رابطه ارتباطی معتبر برای ارسال پیام وجود ندارد.");
+        }
+
         var facts = await LoadEligibilityFactsAsync(
             userId,
             targetUserId,

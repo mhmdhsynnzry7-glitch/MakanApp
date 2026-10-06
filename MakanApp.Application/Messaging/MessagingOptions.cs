@@ -13,4 +13,7 @@ public sealed class MessagingOptions
     public int MaximumMentionsPerMessage { get; init; } = 50;
     public int DefaultChangeLimit { get; init; } = 100;
     public int MaximumChangeLimit { get; init; } = 200;
+    public int MaximumSearchQueryLength { get; init; } = 200;
+    public int DefaultSearchLimit { get; init; } = 20;
+    public int MaximumSearchLimit { get; init; } = 50;
 }

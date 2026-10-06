@@ -45,4 +45,12 @@ public static class MessagingErrorCodes
     public const string ReadCursorInvalid = "READ_CURSOR_INVALID";
     public const string DeliveryCursorInvalid = "DELIVERY_CURSOR_INVALID";
     public const string RealtimeSubscriptionNotAllowed = "REALTIME_SUBSCRIPTION_NOT_ALLOWED";
+    public const string SearchQueryRequired = "SEARCH_QUERY_REQUIRED";
+    public const string SearchQueryInvalid = "SEARCH_QUERY_INVALID";
+    public const string SearchCursorInvalid = "SEARCH_CURSOR_INVALID";
+    public const string SearchNotAllowed = "SEARCH_NOT_ALLOWED";
+    public const string UserBlockNotAllowed = "USER_BLOCK_NOT_ALLOWED";
+    public const string ReportNotAllowed = "REPORT_NOT_ALLOWED";
+    public const string ReportMessageNotFound = "REPORT_MESSAGE_NOT_FOUND";
+    public const string ReportIdempotencyConflict = "REPORT_IDEMPOTENCY_CONFLICT";
 }
