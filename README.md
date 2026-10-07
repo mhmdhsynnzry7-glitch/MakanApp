@@ -4,6 +4,13 @@
 
 اسناد مرجع در `docs/project-context` و قواعد کار در `AGENTS.md` قرار دارند.
 
+## راهنمای استفاده از بک‌اند و API
+
+- [راهنمای راه‌اندازی و استفاده از API](docs/backend-api-guide.md): تنظیمات، ورود، فضای کاری، جریان‌های آموزشی، فایل، پیام‌رسانی، خطاها و محدودیت‌های فعلی.
+- [مرجع کامل Endpointها و قراردادها](docs/backend-api-reference.md): مسیرها، پارامترها، بدنه درخواست، پاسخ، Enumها و کدهای خطا.
+
+این دو سند قابلیت‌های موجود تا تصحیح و انتشار نمره آزمون را پوشش می‌دهند. بخش‌های مرحله‌ای پایین، زمینه همان مرحله توسعه را توضیح می‌دهند؛ برای استفاده از وضعیت جاری، راهنمای بالا را مبنا قرار دهید.
+
 ## مسیرها
 
 ~~~text
@@ -79,7 +86,7 @@ ConnectionStrings:MakanDatabase
 dotnet user-secrets set "ConnectionStrings:MakanDatabase" "Server=.;Database=MakanApp;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True" --project MakanApp.Api/MakanApp.Api.csproj
 ~~~
 
-در محیط‌های دیگر مقدار باید از secret store یا `ConnectionStrings__MakanDatabase` تأمین شود. migrationهای نسخه‌بندی‌شده در Infrastructure قرار دارند و `AddMessagingRealtimeAndSync` جدیدترین migration زیرساخت Messaging است. `Database.EnsureCreated` در برنامه استفاده نمی‌شود و migration هنگام startup اجرا نمی‌شود؛ اعمال migration یک عملیات کنترل‌شده و جداگانه است.
+در محیط‌های دیگر مقدار باید از secret store یا `ConnectionStrings__MakanDatabase` تأمین شود. migrationهای نسخه‌بندی‌شده در Infrastructure قرار دارند و آخرین migration موجود `AddExamGradingAndRelease` است. `Database.EnsureCreated` در برنامه استفاده نمی‌شود و migration هنگام startup اجرا نمی‌شود؛ اعمال migration یک عملیات کنترل‌شده و جداگانه است.
 
 ## API Foundation
 
@@ -218,7 +225,7 @@ dotnet test MakanApp.sln --configuration Debug --nologo
 ~~~
 
 - Unit Tests علاوه بر قواعد Identity و Organization، lifecycle رکوردهای `OrganizationPerson` و `GuardianRelation`، مدل‌های Academic/Assessment و قواعد Domain و eligibility در Messaging را بررسی می‌کنند.
-- Integration Tests migration واقعی، endpointهای Identity/Profile/Organization/Guardian/Academic/Assessment/Messaging، SignalR، Delta Sync، حریم خصوصی، tenant isolation، idempotency و concurrency را روی LocalDB اختصاصی `MakanApp_MessagingSync_IntegrationTests_Step7D` بررسی و آن database را در پایان حذف می‌کنند؛ EF Core InMemory استفاده نمی‌شود.
+- Integration Tests migration واقعی، endpointهای Identity/Profile/Organization/Guardian/Academic/Assessment/Messaging، SignalR، Delta Sync، حریم خصوصی، tenant isolation، idempotency و concurrency را روی LocalDB اختصاصی `MakanApp_MessagingSafety_IntegrationTests_Step7E` بررسی و آن database را در پایان حذف می‌کنند؛ EF Core InMemory استفاده نمی‌شود.
 - Architecture Tests جهت وابستگی Onion و نبود EF Core/ASP.NET Core در لایه‌های داخلی را enforce می‌کنند.
 
 ## اجرا
@@ -270,7 +277,7 @@ Group و Channel نوع‌های فعال `Conversation` هستند. ساخت آ
 
 cursorهای Delivered و Read به‌صورت monotonic و participant-level ذخیره می‌شوند و summary گفت‌وگو `UnreadCount` را از پیام‌های خوانده‌نشده دیگران محاسبه می‌کند. هر Delta request و Hub subscription دسترسی جاری و session را دوباره بررسی می‌کند. جزئیات transaction، Outbox، reconnect، retention و محدودیت scale-out در `docs/architecture/STEP_7D_MESSAGING_REALTIME_SYNC.md` ثبت شده است. Migration جاری Messaging برابر `AddMessagingRealtimeAndSync` و دیتابیس integration test ایزوله برابر `MakanApp_MessagingSync_IntegrationTests_Step7D` است.
 
-Search، Block، Report، Moderation، Push provider و صف mutation سمت کلاینت همچنان خارج از محدوده‌اند.
+Search، Block و Report پس از STEP 7D اضافه شده‌اند و در راهنمای API توضیح داده شده‌اند. Moderation، Push provider و صف mutation سمت کلاینت همچنان خارج از محدوده‌اند.
 
 ## Visual Studio
 
@@ -282,4 +289,4 @@ Search، Block، Report، Moderation، Push provider و صف mutation سمت ک�
 
 ## محدودیت‌ها
 
-ارسال پیامک واقعی و rate limiting توزیع‌شده هنوز پیاده‌سازی نشده‌اند. ایجاد دعوت توسط مدیر، مدیریت عمومی سازمان و مدیریت عمومی `GuardianRelation` در API ارائه نشده‌اند. Rubric ساختاریافته، بازگرداندن صریح پاسخ برای revision، Exam، Intelligence/LearningEvidence، Notification delivery، provisioning خودکار SystemManagedAcademic، Copilot، گزارش‌ها، audit عمومی و deployment هنوز پیاده‌سازی نشده‌اند. realtime فعلی Messaging برای اجرای تک‌instance است و scale-out چند instance به راهکار مصوب backplane نیاز دارد.
+ارسال پیامک واقعی و rate limiting توزیع‌شده هنوز پیاده‌سازی نشده‌اند. ایجاد دعوت توسط مدیر، مدیریت عمومی سازمان و مدیریت عمومی `GuardianRelation` در API ارائه نشده‌اند. Rubric ساختاریافته، بازگرداندن صریح پاسخ برای revision، Intelligence/LearningEvidence، Notification delivery، provisioning خودکار SystemManagedAcademic، Copilot، گزارش‌ها، audit عمومی و deployment هنوز پیاده‌سازی نشده‌اند. چرخه آزمون شامل طراحی، شروع تلاش، ذخیره پاسخ، نهایی‌سازی، تصحیح و انتشار نمره موجود است؛ auto-finalize آزمون وجود ندارد. realtime فعلی Messaging برای اجرای تک‌instance است و scale-out چند instance به راهکار مصوب backplane نیاز دارد.
