@@ -74,5 +74,17 @@ public static class AssessmentErrorCodes
     public const string ExamAnswerSetVersionConflict = "EXAM_ANSWER_SET_VERSION_CONFLICT";
     public const string ExamFinalizeIdempotencyConflict = "EXAM_FINALIZE_IDEMPOTENCY_CONFLICT";
     public const string ExamFinalizeConflict = "EXAM_FINALIZE_CONFLICT";
+    public const string ExamGradeNotFound = "EXAM_GRADE_NOT_FOUND";
+    public const string ExamGradeNotAllowed = "EXAM_GRADE_NOT_ALLOWED";
+    public const string ExamGradeAttemptNotFinalized = "EXAM_GRADE_ATTEMPT_NOT_FINALIZED";
+    public const string ExamGradeIncomplete = "EXAM_GRADE_INCOMPLETE";
+    public const string ExamGradeScoreInvalid = "EXAM_GRADE_SCORE_INVALID";
+    public const string ExamGradeQuestionNotReviewed = "EXAM_GRADE_QUESTION_NOT_REVIEWED";
+    public const string ExamGradeAlreadyReleased = "EXAM_GRADE_ALREADY_RELEASED";
+    public const string ExamGradeNotReleased = "EXAM_GRADE_NOT_RELEASED";
+    public const string ExamGradeReleaseNotAllowed = "EXAM_GRADE_RELEASE_NOT_ALLOWED";
+    public const string ExamGradeCorrectionReasonRequired = "EXAM_GRADE_CORRECTION_REASON_REQUIRED";
+    public const string ExamGradeReleaseConflict = "EXAM_GRADE_RELEASE_CONFLICT";
+    public const string ExamGradeReleaseIdempotencyConflict = "EXAM_GRADE_RELEASE_IDEMPOTENCY_CONFLICT";
     public const string OrganizationScopeMismatch = "ORGANIZATION_SCOPE_MISMATCH";
 }

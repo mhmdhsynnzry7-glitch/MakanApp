@@ -65,6 +65,8 @@ public static class DependencyInjection
         services.AddScoped<IExamAnswerService, ExamAnswerService>();
         services.AddScoped<IExamFinalizationStore, EfExamFinalizationStore>();
         services.AddScoped<IExamFinalizationService, ExamFinalizationService>();
+        services.AddScoped<IExamGradingStore, EfExamGradingStore>();
+        services.AddScoped<IExamGradingService, ExamGradingService>();
         services.AddScoped<EfMessagingStore>();
         services.AddScoped<IMessagingStore>(serviceProvider =>
             serviceProvider.GetRequiredService<EfMessagingStore>());
