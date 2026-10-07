@@ -88,4 +88,95 @@ public sealed partial class MakanAppWebApplicationFactory
             .SingleAsync();
         return (Convert.ToBase64String(version), Convert.ToBase64String(question));
     }
+
+    public async Task<int> CountExamAttemptsAsync(Guid examId)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MakanDbContext>();
+        return await dbContext.ExamAttempts.CountAsync(attempt => attempt.ExamId == examId);
+    }
+
+    public async Task<int> CountExamAttemptQuestionsAsync(Guid attemptId)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MakanDbContext>();
+        return await dbContext.ExamAttemptQuestions.CountAsync(
+            question => question.ExamAttemptId == attemptId);
+    }
+
+    public async Task ExpireExamAttemptAsync(Guid attemptId)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MakanDbContext>();
+        var startedAtUtc = DateTime.UtcNow.AddHours(-2);
+        var deadlineUtc = DateTime.UtcNow.AddHours(-1);
+        await dbContext.Database.ExecuteSqlInterpolatedAsync(
+            $"UPDATE [assessment].[ExamAttempts] SET [StartedAtUtc] = {startedAtUtc}, [EffectiveDeadlineUtc] = {deadlineUtc} WHERE [Id] = {attemptId}");
+    }
+
+    public async Task SetExamVersionWindowAsync(
+        Guid versionId,
+        DateTime availableFromUtc,
+        DateTime availableUntilUtc)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MakanDbContext>();
+        await dbContext.Database.ExecuteSqlInterpolatedAsync(
+            $"UPDATE [assessment].[ExamVersions] SET [AvailableFromUtc] = {availableFromUtc}, [AvailableUntilUtc] = {availableUntilUtc} WHERE [Id] = {versionId}");
+    }
+
+    public async Task<bool> CrossOrganizationExamAttemptIsRejectedAsync(
+        Guid organizationId,
+        Guid foreignExamId,
+        Guid foreignExamVersionId,
+        Guid classId,
+        Guid enrollmentId)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MakanDbContext>();
+        dbContext.ExamAttempts.Add(ExamAttempt.Start(
+            organizationId,
+            foreignExamId,
+            foreignExamVersionId,
+            classId,
+            enrollmentId,
+            Guid.NewGuid(),
+            1,
+            1,
+            DateTime.UtcNow.AddMinutes(-5),
+            DateTime.UtcNow.AddHours(1),
+            30,
+            DateTime.UtcNow));
+        try
+        {
+            await dbContext.SaveChangesAsync();
+            return false;
+        }
+        catch (DbUpdateException)
+        {
+            return true;
+        }
+    }
+
+    public async Task<bool> ForeignVersionQuestionMappingIsRejectedAsync(
+        Guid attemptId,
+        Guid foreignQuestionVersionId)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MakanDbContext>();
+        var attempt = await dbContext.ExamAttempts.SingleAsync(item => item.Id == attemptId);
+        dbContext.ExamAttemptQuestions.Add(ExamAttemptQuestion.Create(
+            attempt,
+            foreignQuestionVersionId,
+            99));
+        try
+        {
+            await dbContext.SaveChangesAsync();
+            return false;
+        }
+        catch (DbUpdateException)
+        {
+            return true;
+        }
+    }
 }

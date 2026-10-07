@@ -24,6 +24,8 @@ public sealed class ExamConfiguration : IEntityTypeConfiguration<Exam>
         builder.HasKey(exam => exam.Id);
         builder.HasAlternateKey(exam => new { exam.OrganizationId, exam.Id })
             .HasName("UQ_Exams_OrganizationId_Id");
+        builder.HasAlternateKey(exam => new { exam.OrganizationId, exam.ClassId, exam.Id })
+            .HasName("UQ_Exams_Organization_Class_Id");
         builder.Property(exam => exam.CreatedAtUtc).HasColumnType("datetime2(7)");
         builder.Property(exam => exam.RowVersion).IsRowVersion();
         builder.HasIndex(exam => new { exam.OrganizationId, exam.ClassId, exam.Status })

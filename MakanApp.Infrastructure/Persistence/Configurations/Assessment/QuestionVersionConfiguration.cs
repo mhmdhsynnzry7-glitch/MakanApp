@@ -17,6 +17,12 @@ public sealed class QuestionVersionConfiguration : IEntityTypeConfiguration<Ques
         builder.HasKey(question => question.Id);
         builder.HasAlternateKey(question => new { question.OrganizationId, question.Id })
             .HasName("UQ_QuestionVersions_OrganizationId_Id");
+        builder.HasAlternateKey(question => new
+        {
+            question.OrganizationId,
+            question.ExamVersionId,
+            question.Id
+        }).HasName("UQ_QuestionVersions_Organization_ExamVersion_Id");
         builder.Property(question => question.Prompt)
             .HasMaxLength(QuestionVersion.MaximumPromptLength)
             .IsRequired();

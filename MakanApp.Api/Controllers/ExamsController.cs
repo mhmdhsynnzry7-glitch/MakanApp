@@ -8,7 +8,9 @@ namespace MakanApp.Api.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/v1/academic")]
-public sealed class ExamsController(IExamService examService) : ControllerBase
+public sealed class ExamsController(
+    IExamService examService,
+    IExamAttemptService examAttemptService) : ControllerBase
 {
     [HttpPost("classes/{classId:guid}/exams")]
     [ProducesResponseType<ExamEditorDto>(StatusCodes.Status201Created)]
@@ -158,4 +160,53 @@ public sealed class ExamsController(IExamService examService) : ControllerBase
             cancellationToken);
         return StatusCode(StatusCodes.Status201Created, result);
     }
+
+    [HttpPost("exams/{examId:guid}/attempts/start")]
+    [ProducesResponseType<StudentExamAttemptDto>(StatusCodes.Status201Created)]
+    public async Task<ActionResult<StudentExamAttemptDto>> StartAttempt(
+        Guid examId,
+        StartExamCommand command,
+        CancellationToken cancellationToken)
+    {
+        var result = await examAttemptService.StartAsync(
+            AuthenticatedSession.GetUserId(User),
+            AuthenticatedSession.GetSessionId(User),
+            examId,
+            command,
+            cancellationToken);
+        return StatusCode(StatusCodes.Status201Created, result);
+    }
+
+    [HttpGet("exams/{examId:guid}/attempts/me/active")]
+    [ProducesResponseType<StudentExamAttemptDto>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<StudentExamAttemptDto>> GetMyActiveAttempt(
+        Guid examId,
+        CancellationToken cancellationToken) =>
+        Ok(await examAttemptService.GetMyActiveAsync(
+            AuthenticatedSession.GetUserId(User),
+            AuthenticatedSession.GetSessionId(User),
+            examId,
+            cancellationToken));
+
+    [HttpGet("exam-attempts/{attemptId:guid}")]
+    [ProducesResponseType<StudentExamAttemptDto>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<StudentExamAttemptDto>> GetAttempt(
+        Guid attemptId,
+        CancellationToken cancellationToken) =>
+        Ok(await examAttemptService.GetAsync(
+            AuthenticatedSession.GetUserId(User),
+            AuthenticatedSession.GetSessionId(User),
+            attemptId,
+            cancellationToken));
+
+    [HttpGet("exams/{examId:guid}/attempts/me")]
+    [ProducesResponseType<IReadOnlyCollection<StudentExamAttemptSummaryDto>>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyCollection<StudentExamAttemptSummaryDto>>> GetMyAttempts(
+        Guid examId,
+        CancellationToken cancellationToken) =>
+        Ok(await examAttemptService.GetMyAttemptsAsync(
+            AuthenticatedSession.GetUserId(User),
+            AuthenticatedSession.GetSessionId(User),
+            examId,
+            cancellationToken));
 }

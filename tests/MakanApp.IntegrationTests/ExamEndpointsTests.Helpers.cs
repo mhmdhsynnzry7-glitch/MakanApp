@@ -87,16 +87,21 @@ public sealed partial class ExamEndpointsTests
             user.User.Id,
             organizationId,
             OrganizationRole.Student);
+        Guid? enrollmentId = null;
         if (enrolled)
         {
-            _ = await _factory.CreateEnrollmentAsync(
+            enrollmentId = await _factory.CreateEnrollmentAsync(
                 organizationId,
                 classId,
                 organizationPersonId);
         }
 
         await SelectWorkspaceAsync(client, membership.MembershipId, OrganizationRole.Student);
-        return new StudentContext(user.User.Id, user.AccessToken, organizationPersonId);
+        return new StudentContext(
+            user.User.Id,
+            user.AccessToken,
+            organizationPersonId,
+            enrollmentId);
     }
 
     private async Task<ParentContext> CreateParentAsync(
@@ -228,7 +233,8 @@ public sealed partial class ExamEndpointsTests
         DateTime? availableUntilUtc = null,
         int durationMinutes = 45,
         int maxAttempts = 1,
-        decimal maxScore = 20m) =>
+        decimal maxScore = 20m,
+        ExamRandomizationPolicy randomizationPolicy = ExamRandomizationPolicy.QuestionOrder) =>
         new(
             title,
             "قوانین آزمون فصل اول",
@@ -237,7 +243,7 @@ public sealed partial class ExamEndpointsTests
             durationMinutes,
             maxAttempts,
             maxScore,
-            ExamRandomizationPolicy.QuestionOrder);
+            randomizationPolicy);
 
     private static UpdateExamDraftCommand NewUpdateCommand(
         ExamEditorDto exam,
@@ -279,6 +285,10 @@ public sealed partial class ExamEndpointsTests
         Guid MembershipId);
 
     private sealed record TeacherContext(Guid UserId, string AccessToken, Guid MembershipId);
-    private sealed record StudentContext(Guid UserId, string AccessToken, Guid OrganizationPersonId);
+    private sealed record StudentContext(
+        Guid UserId,
+        string AccessToken,
+        Guid OrganizationPersonId,
+        Guid? EnrollmentId);
     private sealed record ParentContext(Guid UserId, Guid MembershipId, Guid ChildId);
 }

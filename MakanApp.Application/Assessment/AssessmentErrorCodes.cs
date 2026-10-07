@@ -51,5 +51,13 @@ public static class AssessmentErrorCodes
     public const string ExamScoreTotalInvalid = "EXAM_SCORE_TOTAL_INVALID";
     public const string ExamAnswerKeyInvalid = "EXAM_ANSWER_KEY_INVALID";
     public const string ExamStudentPreviewNotAllowed = "EXAM_STUDENT_PREVIEW_NOT_ALLOWED";
+    public const string ExamNotPublished = "EXAM_NOT_PUBLISHED";
+    public const string ExamNotAvailableYet = "EXAM_NOT_AVAILABLE_YET";
+    public const string ExamWindowClosed = "EXAM_WINDOW_CLOSED";
+    public const string ExamAttemptsExhausted = "EXAM_ATTEMPTS_EXHAUSTED";
+    public const string ExamAttemptNotFound = "EXAM_ATTEMPT_NOT_FOUND";
+    public const string ExamAttemptNotAllowed = "EXAM_ATTEMPT_NOT_ALLOWED";
+    public const string ExamQuestionSetInvalid = "EXAM_QUESTION_SET_INVALID";
+    public const string ExamStartIdempotencyConflict = "EXAM_START_IDEMPOTENCY_CONFLICT";
     public const string OrganizationScopeMismatch = "ORGANIZATION_SCOPE_MISMATCH";
 }
