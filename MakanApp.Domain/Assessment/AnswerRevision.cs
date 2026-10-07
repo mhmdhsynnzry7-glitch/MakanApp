@@ -61,6 +61,7 @@ public sealed class AnswerRevision
     public long AcceptedWriteLeaseVersion { get; private set; }
     public long AcceptedAnswerSetVersion { get; private set; }
     public DateTime AcceptedAtUtc { get; private set; }
+    public bool HasAnswer => SelectedOptionId.HasValue || !string.IsNullOrEmpty(TextAnswer);
 
     public static AnswerRevision CreateObjective(
         ExamAttempt attempt,

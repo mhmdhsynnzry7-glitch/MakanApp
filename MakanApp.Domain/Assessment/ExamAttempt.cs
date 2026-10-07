@@ -2,6 +2,8 @@ namespace MakanApp.Domain.Assessment;
 
 public sealed class ExamAttempt
 {
+    public const int FinalizeRequestHashLength = 64;
+
     private ExamAttempt()
     {
     }
@@ -49,6 +51,11 @@ public sealed class ExamAttempt
     public long WriteLeaseVersion { get; private set; }
     public DateTime? WriteLeaseAcquiredAtUtc { get; private set; }
     public long AnswerSetVersion { get; private set; }
+    public DateTime? FinalizedAtUtc { get; private set; }
+    public long? FinalizedAnswerSetVersion { get; private set; }
+    public Guid? FinalizeClientOperationId { get; private set; }
+    public string? FinalizeRequestHash { get; private set; }
+    public Guid? FinalizedBySessionId { get; private set; }
     public byte[] RowVersion { get; private set; } = [];
 
     public bool IsInProgress => Status == ExamAttemptStatus.InProgress;
@@ -183,6 +190,34 @@ public sealed class ExamAttempt
         return AnswerSetVersion;
     }
 
+    public void Finalize(
+        Guid sessionId,
+        long expectedWriteLeaseVersion,
+        long expectedAnswerSetVersion,
+        Guid clientOperationId,
+        string requestHash,
+        DateTime finalizedAtUtc)
+    {
+        EnsureIdentifier(clientOperationId, nameof(clientOperationId));
+        if (requestHash is null || requestHash.Length != FinalizeRequestHashLength)
+        {
+            throw new ArgumentException("هش درخواست نهایی‌سازی معتبر نیست.", nameof(requestHash));
+        }
+
+        EnsureWriteLease(sessionId, expectedWriteLeaseVersion, finalizedAtUtc);
+        if (expectedAnswerSetVersion != AnswerSetVersion)
+        {
+            throw new ExamAnswerSetVersionConflictException();
+        }
+
+        Status = ExamAttemptStatus.Finalized;
+        FinalizedAtUtc = EnsureUtc(finalizedAtUtc, nameof(finalizedAtUtc));
+        FinalizedAnswerSetVersion = AnswerSetVersion;
+        FinalizeClientOperationId = clientOperationId;
+        FinalizeRequestHash = requestHash;
+        FinalizedBySessionId = sessionId;
+    }
+
     public void EnsureWritable(DateTime nowUtc)
     {
         nowUtc = EnsureUtc(nowUtc, nameof(nowUtc));
@@ -237,3 +272,4 @@ public sealed class ExamAttemptDeadlinePassedException : Exception;
 public sealed class ExamWriteLeaseRequiredException : Exception;
 public sealed class ExamWriteLeaseHeldException : Exception;
 public sealed class ExamWriteLeaseStaleException : Exception;
+public sealed class ExamAnswerSetVersionConflictException : Exception;

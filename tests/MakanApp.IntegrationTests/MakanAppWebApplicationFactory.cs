@@ -37,6 +37,8 @@ public sealed partial class MakanAppWebApplicationFactory :
         "MakanApp-StorageTests",
         Guid.NewGuid().ToString("N"));
 
+    public ControllableTimeProvider Clock { get; } = new();
+
     public MakanAppWebApplicationFactory()
     {
         Environment.SetEnvironmentVariable(
@@ -64,6 +66,8 @@ public sealed partial class MakanAppWebApplicationFactory :
         });
         builder.ConfigureTestServices(services =>
         {
+            services.RemoveAll<TimeProvider>();
+            services.AddSingleton<TimeProvider>(Clock);
             services.RemoveAll<StorageOptions>();
             services.AddSingleton(new StorageOptions
             {
@@ -92,6 +96,41 @@ public sealed partial class MakanAppWebApplicationFactory :
                     serviceProvider.GetRequiredService<LocalFileStorage>(),
                     serviceProvider.GetRequiredService<StorageFailureSwitch>()));
         });
+    }
+
+    public sealed class ControllableTimeProvider : TimeProvider
+    {
+        private readonly object _sync = new();
+        private DateTimeOffset? _utcNow;
+
+        public override DateTimeOffset GetUtcNow()
+        {
+            lock (_sync)
+            {
+                return _utcNow ?? DateTimeOffset.UtcNow;
+            }
+        }
+
+        public void SetUtcNow(DateTime utcNow)
+        {
+            if (utcNow.Kind != DateTimeKind.Utc)
+            {
+                throw new ArgumentException("زمان تست باید UTC باشد.", nameof(utcNow));
+            }
+
+            lock (_sync)
+            {
+                _utcNow = new DateTimeOffset(utcNow);
+            }
+        }
+
+        public void UseSystemTime()
+        {
+            lock (_sync)
+            {
+                _utcNow = null;
+            }
+        }
     }
 
     async Task IAsyncLifetime.InitializeAsync()

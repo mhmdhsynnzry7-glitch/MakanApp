@@ -69,5 +69,10 @@ public static class AssessmentErrorCodes
     public const string ExamAnswerOptionInvalid = "EXAM_ANSWER_OPTION_INVALID";
     public const string ExamAnswerVersionConflict = "EXAM_ANSWER_VERSION_CONFLICT";
     public const string ExamAnswerIdempotencyConflict = "EXAM_ANSWER_IDEMPOTENCY_CONFLICT";
+    public const string ExamAttemptNotFinalizable = "EXAM_ATTEMPT_NOT_FINALIZABLE";
+    public const string ExamAlreadyFinalized = "EXAM_ALREADY_FINALIZED";
+    public const string ExamAnswerSetVersionConflict = "EXAM_ANSWER_SET_VERSION_CONFLICT";
+    public const string ExamFinalizeIdempotencyConflict = "EXAM_FINALIZE_IDEMPOTENCY_CONFLICT";
+    public const string ExamFinalizeConflict = "EXAM_FINALIZE_CONFLICT";
     public const string OrganizationScopeMismatch = "ORGANIZATION_SCOPE_MISMATCH";
 }

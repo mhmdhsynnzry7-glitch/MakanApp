@@ -13,7 +13,7 @@ public sealed class ExamAttemptConfiguration : IEntityTypeConfiguration<ExamAtte
         builder.ToTable("ExamAttempts", "assessment", table =>
         {
             table.HasCheckConstraint("CK_ExamAttempts_AttemptNumber", "[AttemptNumber] > 0");
-            table.HasCheckConstraint("CK_ExamAttempts_Status", "[Status] IN (1, 2)");
+            table.HasCheckConstraint("CK_ExamAttempts_Status", "[Status] IN (1, 2, 3)");
             table.HasCheckConstraint("CK_ExamAttempts_WriteLeaseVersion", "[WriteLeaseVersion] >= 0");
             table.HasCheckConstraint("CK_ExamAttempts_AnswerSetVersion", "[AnswerSetVersion] >= 0");
             table.HasCheckConstraint(
@@ -24,7 +24,19 @@ public sealed class ExamAttemptConfiguration : IEntityTypeConfiguration<ExamAtte
                 "[EffectiveDeadlineUtc] > [StartedAtUtc]");
             table.HasCheckConstraint(
                 "CK_ExamAttempts_ExpirationState",
-                "([Status] = 1 AND [ExpiredAtUtc] IS NULL) OR ([Status] = 2 AND [ExpiredAtUtc] IS NOT NULL)");
+                "([Status] IN (1, 3) AND [ExpiredAtUtc] IS NULL) OR ([Status] = 2 AND [ExpiredAtUtc] IS NOT NULL)");
+            table.HasCheckConstraint(
+                "CK_ExamAttempts_FinalizationState",
+                "([Status] = 3 AND [FinalizedAtUtc] IS NOT NULL AND [FinalizedAnswerSetVersion] IS NOT NULL AND [FinalizeClientOperationId] IS NOT NULL AND [FinalizeRequestHash] IS NOT NULL AND [FinalizedBySessionId] IS NOT NULL) OR ([Status] <> 3 AND [FinalizedAtUtc] IS NULL AND [FinalizedAnswerSetVersion] IS NULL AND [FinalizeClientOperationId] IS NULL AND [FinalizeRequestHash] IS NULL AND [FinalizedBySessionId] IS NULL)");
+            table.HasCheckConstraint(
+                "CK_ExamAttempts_FinalizedAnswerSetVersion",
+                "[FinalizedAnswerSetVersion] IS NULL OR ([FinalizedAnswerSetVersion] >= 0 AND [FinalizedAnswerSetVersion] = [AnswerSetVersion])");
+            table.HasCheckConstraint(
+                "CK_ExamAttempts_FinalizedBeforeDeadline",
+                "[FinalizedAtUtc] IS NULL OR [FinalizedAtUtc] < [EffectiveDeadlineUtc]");
+            table.HasCheckConstraint(
+                "CK_ExamAttempts_FinalizeRequestHash",
+                $"[FinalizeRequestHash] IS NULL OR LEN([FinalizeRequestHash]) = {ExamAttempt.FinalizeRequestHashLength}");
         });
         builder.HasKey(attempt => attempt.Id);
         builder.HasAlternateKey(attempt => new
@@ -40,6 +52,10 @@ public sealed class ExamAttemptConfiguration : IEntityTypeConfiguration<ExamAtte
         builder.Property(attempt => attempt.CreatedAtUtc).HasColumnType("datetime2(7)");
         builder.Property(attempt => attempt.ExpiredAtUtc).HasColumnType("datetime2(7)");
         builder.Property(attempt => attempt.WriteLeaseAcquiredAtUtc).HasColumnType("datetime2(7)");
+        builder.Property(attempt => attempt.FinalizedAtUtc).HasColumnType("datetime2(7)");
+        builder.Property(attempt => attempt.FinalizeRequestHash)
+            .HasMaxLength(ExamAttempt.FinalizeRequestHashLength)
+            .IsUnicode(false);
         builder.Property(attempt => attempt.RowVersion).IsRowVersion();
 
         builder.HasIndex(attempt => new
@@ -107,6 +123,10 @@ public sealed class ExamAttemptConfiguration : IEntityTypeConfiguration<ExamAtte
         builder.HasOne<UserSession>()
             .WithMany()
             .HasForeignKey(attempt => attempt.WriterSessionId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<UserSession>()
+            .WithMany()
+            .HasForeignKey(attempt => attempt.FinalizedBySessionId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

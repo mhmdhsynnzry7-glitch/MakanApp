@@ -11,7 +11,8 @@ namespace MakanApp.Api.Controllers;
 public sealed class ExamsController(
     IExamService examService,
     IExamAttemptService examAttemptService,
-    IExamAnswerService examAnswerService) : ControllerBase
+    IExamAnswerService examAnswerService,
+    IExamFinalizationService examFinalizationService) : ControllerBase
 {
     [HttpPost("classes/{classId:guid}/exams")]
     [ProducesResponseType<ExamEditorDto>(StatusCodes.Status201Created)]
@@ -254,6 +255,30 @@ public sealed class ExamsController(
         Guid attemptId,
         CancellationToken cancellationToken) =>
         Ok(await examAnswerService.GetMyAnswersAsync(
+            AuthenticatedSession.GetUserId(User),
+            AuthenticatedSession.GetSessionId(User),
+            attemptId,
+            cancellationToken));
+
+    [HttpPost("exam-attempts/{attemptId:guid}/finalize")]
+    [ProducesResponseType<ExamFinalReceiptDto>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<ExamFinalReceiptDto>> FinalizeAttempt(
+        Guid attemptId,
+        FinalizeExamCommand command,
+        CancellationToken cancellationToken) =>
+        Ok(await examFinalizationService.FinalizeAsync(
+            AuthenticatedSession.GetUserId(User),
+            AuthenticatedSession.GetSessionId(User),
+            attemptId,
+            command,
+            cancellationToken));
+
+    [HttpGet("exam-attempts/{attemptId:guid}/receipt")]
+    [ProducesResponseType<ExamFinalReceiptDto>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<ExamFinalReceiptDto>> GetFinalReceipt(
+        Guid attemptId,
+        CancellationToken cancellationToken) =>
+        Ok(await examFinalizationService.GetReceiptAsync(
             AuthenticatedSession.GetUserId(User),
             AuthenticatedSession.GetSessionId(User),
             attemptId,

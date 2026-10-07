@@ -63,6 +63,8 @@ public static class DependencyInjection
         services.AddSingleton<IExamQuestionOrderRandomizer, SecureExamQuestionOrderRandomizer>();
         services.AddScoped<IExamAnswerStore, EfExamAnswerStore>();
         services.AddScoped<IExamAnswerService, ExamAnswerService>();
+        services.AddScoped<IExamFinalizationStore, EfExamFinalizationStore>();
+        services.AddScoped<IExamFinalizationService, ExamFinalizationService>();
         services.AddScoped<EfMessagingStore>();
         services.AddScoped<IMessagingStore>(serviceProvider =>
             serviceProvider.GetRequiredService<EfMessagingStore>());
