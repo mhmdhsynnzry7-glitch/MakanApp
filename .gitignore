@@ -446,3 +446,7 @@ __pycache__/
 !.env.example
 !.env.sample
 appsettings.*.local.json
+
+# خروجی‌های قابل تولید از مستند ساختار دیتابیس
+/docs/database-current-structure.html
+/docs/database-current-structure.pdf
