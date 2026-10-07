@@ -100,6 +100,7 @@ public sealed partial class ExamEndpointsTests
         return new StudentContext(
             user.User.Id,
             user.AccessToken,
+            membership.MembershipId,
             organizationPersonId,
             enrollmentId);
     }
@@ -288,6 +289,7 @@ public sealed partial class ExamEndpointsTests
     private sealed record StudentContext(
         Guid UserId,
         string AccessToken,
+        Guid MembershipId,
         Guid OrganizationPersonId,
         Guid? EnrollmentId);
     private sealed record ParentContext(Guid UserId, Guid MembershipId, Guid ChildId);

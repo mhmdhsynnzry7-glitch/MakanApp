@@ -13,6 +13,12 @@ public sealed class QuestionOptionConfiguration : IEntityTypeConfiguration<Quest
             table.HasCheckConstraint("CK_QuestionOptions_Order", "[Order] > 0");
         });
         builder.HasKey(option => option.Id);
+        builder.HasAlternateKey(option => new
+        {
+            option.OrganizationId,
+            option.QuestionVersionId,
+            option.Id
+        }).HasName("UQ_QuestionOptions_Organization_QuestionVersion_Id");
         builder.Property(option => option.Text)
             .HasMaxLength(QuestionOption.MaximumTextLength)
             .IsRequired();

@@ -10,7 +10,8 @@ namespace MakanApp.Api.Controllers;
 [Route("api/v1/academic")]
 public sealed class ExamsController(
     IExamService examService,
-    IExamAttemptService examAttemptService) : ControllerBase
+    IExamAttemptService examAttemptService,
+    IExamAnswerService examAnswerService) : ControllerBase
 {
     [HttpPost("classes/{classId:guid}/exams")]
     [ProducesResponseType<ExamEditorDto>(StatusCodes.Status201Created)]
@@ -208,5 +209,53 @@ public sealed class ExamsController(
             AuthenticatedSession.GetUserId(User),
             AuthenticatedSession.GetSessionId(User),
             examId,
+            cancellationToken));
+
+    [HttpPost("exam-attempts/{attemptId:guid}/write-lease")]
+    [ProducesResponseType<ExamWriteLeaseDto>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<ExamWriteLeaseDto>> AcquireWriteLease(
+        Guid attemptId,
+        CancellationToken cancellationToken) =>
+        Ok(await examAnswerService.AcquireWriteLeaseAsync(
+            AuthenticatedSession.GetUserId(User),
+            AuthenticatedSession.GetSessionId(User),
+            attemptId,
+            cancellationToken));
+
+    [HttpPost("exam-attempts/{attemptId:guid}/write-lease/transfer")]
+    [ProducesResponseType<ExamWriteLeaseDto>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<ExamWriteLeaseDto>> TransferWriteLease(
+        Guid attemptId,
+        CancellationToken cancellationToken) =>
+        Ok(await examAnswerService.TransferWriteLeaseAsync(
+            AuthenticatedSession.GetUserId(User),
+            AuthenticatedSession.GetSessionId(User),
+            attemptId,
+            cancellationToken));
+
+    [HttpPut("exam-attempts/{attemptId:guid}/answers/{attemptQuestionId:guid}")]
+    [ProducesResponseType<ExamAnswerReceiptDto>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<ExamAnswerReceiptDto>> SaveAnswer(
+        Guid attemptId,
+        Guid attemptQuestionId,
+        SaveExamAnswerCommand command,
+        CancellationToken cancellationToken) =>
+        Ok(await examAnswerService.SaveAnswerAsync(
+            AuthenticatedSession.GetUserId(User),
+            AuthenticatedSession.GetSessionId(User),
+            attemptId,
+            attemptQuestionId,
+            command,
+            cancellationToken));
+
+    [HttpGet("exam-attempts/{attemptId:guid}/answers")]
+    [ProducesResponseType<StudentExamAnswersDto>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<StudentExamAnswersDto>> GetMyAnswers(
+        Guid attemptId,
+        CancellationToken cancellationToken) =>
+        Ok(await examAnswerService.GetMyAnswersAsync(
+            AuthenticatedSession.GetUserId(User),
+            AuthenticatedSession.GetSessionId(User),
+            attemptId,
             cancellationToken));
 }

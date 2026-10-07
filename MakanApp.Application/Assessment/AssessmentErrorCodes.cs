@@ -59,5 +59,15 @@ public static class AssessmentErrorCodes
     public const string ExamAttemptNotAllowed = "EXAM_ATTEMPT_NOT_ALLOWED";
     public const string ExamQuestionSetInvalid = "EXAM_QUESTION_SET_INVALID";
     public const string ExamStartIdempotencyConflict = "EXAM_START_IDEMPOTENCY_CONFLICT";
+    public const string ExamAttemptNotWritable = "EXAM_ATTEMPT_NOT_WRITABLE";
+    public const string ExamDeadlinePassed = "EXAM_DEADLINE_PASSED";
+    public const string ExamWriteLeaseRequired = "EXAM_WRITE_LEASE_REQUIRED";
+    public const string ExamWriteLeaseHeldByOtherSession = "EXAM_WRITE_LEASE_HELD_BY_OTHER_SESSION";
+    public const string ExamWriteLeaseStale = "EXAM_WRITE_LEASE_STALE";
+    public const string ExamAnswerNotAllowed = "EXAM_ANSWER_NOT_ALLOWED";
+    public const string ExamAnswerTypeInvalid = "EXAM_ANSWER_TYPE_INVALID";
+    public const string ExamAnswerOptionInvalid = "EXAM_ANSWER_OPTION_INVALID";
+    public const string ExamAnswerVersionConflict = "EXAM_ANSWER_VERSION_CONFLICT";
+    public const string ExamAnswerIdempotencyConflict = "EXAM_ANSWER_IDEMPOTENCY_CONFLICT";
     public const string OrganizationScopeMismatch = "ORGANIZATION_SCOPE_MISMATCH";
 }

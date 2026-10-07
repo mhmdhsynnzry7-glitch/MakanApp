@@ -28,6 +28,8 @@ public sealed class ExamAttemptQuestion
     public Guid ExamVersionId { get; private set; }
     public Guid QuestionVersionId { get; private set; }
     public int DisplayOrder { get; private set; }
+    public Guid? CurrentAnswerRevisionId { get; private set; }
+    public byte[] RowVersion { get; private set; } = [];
 
     public static ExamAttemptQuestion Create(
         ExamAttempt attempt,
@@ -51,5 +53,18 @@ public sealed class ExamAttemptQuestion
             attempt.ExamVersionId,
             questionVersionId,
             displayOrder);
+    }
+
+    public void AcceptAnswerRevision(AnswerRevision revision)
+    {
+        if (revision.OrganizationId != OrganizationId ||
+            revision.ExamAttemptId != ExamAttemptId ||
+            revision.ExamAttemptQuestionId != Id ||
+            revision.SupersedesAnswerRevisionId != CurrentAnswerRevisionId)
+        {
+            throw new InvalidOperationException("نسخه پاسخ با وضعیت فعلی سؤال تلاش هم‌خوان نیست.");
+        }
+
+        CurrentAnswerRevisionId = revision.Id;
     }
 }

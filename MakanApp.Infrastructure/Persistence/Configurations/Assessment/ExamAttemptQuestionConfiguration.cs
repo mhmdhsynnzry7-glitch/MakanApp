@@ -11,6 +11,14 @@ public sealed class ExamAttemptQuestionConfiguration : IEntityTypeConfiguration<
         builder.ToTable("ExamAttemptQuestions", "assessment", table =>
             table.HasCheckConstraint("CK_ExamAttemptQuestions_DisplayOrder", "[DisplayOrder] > 0"));
         builder.HasKey(mapping => mapping.Id);
+        builder.HasAlternateKey(mapping => new
+        {
+            mapping.OrganizationId,
+            mapping.ExamAttemptId,
+            mapping.Id,
+            mapping.QuestionVersionId
+        }).HasName("UQ_ExamAttemptQuestions_Organization_Attempt_Id_QuestionVersion");
+        builder.Property(mapping => mapping.RowVersion).IsRowVersion();
         builder.HasIndex(mapping => new
         {
             mapping.OrganizationId,
@@ -56,6 +64,23 @@ public sealed class ExamAttemptQuestionConfiguration : IEntityTypeConfiguration<
                 question.OrganizationId,
                 question.ExamVersionId,
                 question.Id
+            })
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<AnswerRevision>()
+            .WithMany()
+            .HasForeignKey(mapping => new
+            {
+                mapping.OrganizationId,
+                mapping.ExamAttemptId,
+                ExamAttemptQuestionId = mapping.Id,
+                mapping.CurrentAnswerRevisionId
+            })
+            .HasPrincipalKey(revision => new
+            {
+                revision.OrganizationId,
+                revision.ExamAttemptId,
+                revision.ExamAttemptQuestionId,
+                Id = (Guid?)revision.Id
             })
             .OnDelete(DeleteBehavior.Restrict);
     }

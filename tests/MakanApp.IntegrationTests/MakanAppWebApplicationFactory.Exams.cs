@@ -1,4 +1,7 @@
+using MakanApp.Application.Identity;
 using MakanApp.Domain.Assessment;
+using MakanApp.Domain.Identity;
+using MakanApp.Domain.Organization;
 using MakanApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,6 +10,76 @@ namespace MakanApp.IntegrationTests;
 
 public sealed partial class MakanAppWebApplicationFactory
 {
+    public async Task<string> CreateAdditionalStudentSessionAsync(
+        Guid userId,
+        Guid membershipId)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MakanDbContext>();
+        var security = scope.ServiceProvider.GetRequiredService<IIdentitySecurity>();
+        var rawToken = security.GenerateSessionToken();
+        var nowUtc = DateTime.UtcNow;
+        var session = UserSession.Create(
+            userId,
+            security.HashSessionToken(rawToken),
+            nowUtc,
+            nowUtc.AddDays(1));
+        session.SelectOrganizationWorkspace(membershipId, OrganizationRole.Student.ToString());
+        dbContext.UserSessions.Add(session);
+        await dbContext.SaveChangesAsync();
+        return rawToken;
+    }
+
+    public async Task RevokeSessionByTokenAsync(string rawToken)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MakanDbContext>();
+        var security = scope.ServiceProvider.GetRequiredService<IIdentitySecurity>();
+        var tokenHash = security.HashSessionToken(rawToken);
+        var session = await dbContext.UserSessions.SingleAsync(
+            item => item.TokenHash.SequenceEqual(tokenHash));
+        session.Revoke(DateTime.UtcNow);
+        await dbContext.SaveChangesAsync();
+    }
+
+    public async Task<int> CountAnswerRevisionsAsync(Guid attemptId)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MakanDbContext>();
+        return await dbContext.AnswerRevisions.CountAsync(
+            revision => revision.ExamAttemptId == attemptId);
+    }
+
+    public async Task<(long AnswerSetVersion, Guid? CurrentRevisionId, int[] RevisionNumbers)>
+        GetAnswerPersistenceStateAsync(Guid attemptId, Guid attemptQuestionId)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MakanDbContext>();
+        var answerSetVersion = await dbContext.ExamAttempts
+            .Where(attempt => attempt.Id == attemptId)
+            .Select(attempt => attempt.AnswerSetVersion)
+            .SingleAsync();
+        var currentRevisionId = await dbContext.ExamAttemptQuestions
+            .Where(question => question.Id == attemptQuestionId)
+            .Select(question => question.CurrentAnswerRevisionId)
+            .SingleAsync();
+        var revisionNumbers = await dbContext.AnswerRevisions
+            .Where(revision => revision.ExamAttemptQuestionId == attemptQuestionId)
+            .OrderBy(revision => revision.RevisionNumber)
+            .Select(revision => revision.RevisionNumber)
+            .ToArrayAsync();
+        return (answerSetVersion, currentRevisionId, revisionNumbers);
+    }
+
+    public async Task MarkExamAttemptExpiredAsync(Guid attemptId)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MakanDbContext>();
+        var nowUtc = DateTime.UtcNow;
+        await dbContext.Database.ExecuteSqlInterpolatedAsync(
+            $"UPDATE [assessment].[ExamAttempts] SET [Status] = 2, [ExpiredAtUtc] = {nowUtc} WHERE [Id] = {attemptId}");
+    }
+
     public async Task<bool> CrossOrganizationQuestionReferenceIsRejectedAsync(
         Guid organizationId,
         Guid foreignExamVersionId)

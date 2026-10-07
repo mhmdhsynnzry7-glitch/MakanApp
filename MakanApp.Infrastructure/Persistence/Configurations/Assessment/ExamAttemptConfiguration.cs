@@ -1,5 +1,6 @@
 using MakanApp.Domain.Academic;
 using MakanApp.Domain.Assessment;
+using MakanApp.Domain.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -13,6 +14,11 @@ public sealed class ExamAttemptConfiguration : IEntityTypeConfiguration<ExamAtte
         {
             table.HasCheckConstraint("CK_ExamAttempts_AttemptNumber", "[AttemptNumber] > 0");
             table.HasCheckConstraint("CK_ExamAttempts_Status", "[Status] IN (1, 2)");
+            table.HasCheckConstraint("CK_ExamAttempts_WriteLeaseVersion", "[WriteLeaseVersion] >= 0");
+            table.HasCheckConstraint("CK_ExamAttempts_AnswerSetVersion", "[AnswerSetVersion] >= 0");
+            table.HasCheckConstraint(
+                "CK_ExamAttempts_WriteLeaseState",
+                "([WriterSessionId] IS NULL AND [WriteLeaseVersion] = 0 AND [WriteLeaseAcquiredAtUtc] IS NULL) OR ([WriterSessionId] IS NOT NULL AND [WriteLeaseVersion] > 0 AND [WriteLeaseAcquiredAtUtc] IS NOT NULL)");
             table.HasCheckConstraint(
                 "CK_ExamAttempts_Deadline",
                 "[EffectiveDeadlineUtc] > [StartedAtUtc]");
@@ -27,10 +33,13 @@ public sealed class ExamAttemptConfiguration : IEntityTypeConfiguration<ExamAtte
             attempt.ExamVersionId,
             attempt.Id
         }).HasName("UQ_ExamAttempts_Organization_ExamVersion_Id");
+        builder.HasAlternateKey(attempt => new { attempt.OrganizationId, attempt.Id })
+            .HasName("UQ_ExamAttempts_Organization_Id");
         builder.Property(attempt => attempt.StartedAtUtc).HasColumnType("datetime2(7)");
         builder.Property(attempt => attempt.EffectiveDeadlineUtc).HasColumnType("datetime2(7)");
         builder.Property(attempt => attempt.CreatedAtUtc).HasColumnType("datetime2(7)");
         builder.Property(attempt => attempt.ExpiredAtUtc).HasColumnType("datetime2(7)");
+        builder.Property(attempt => attempt.WriteLeaseAcquiredAtUtc).HasColumnType("datetime2(7)");
         builder.Property(attempt => attempt.RowVersion).IsRowVersion();
 
         builder.HasIndex(attempt => new
@@ -94,6 +103,10 @@ public sealed class ExamAttemptConfiguration : IEntityTypeConfiguration<ExamAtte
                 enrollment.ClassId,
                 enrollment.Id
             })
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<UserSession>()
+            .WithMany()
+            .HasForeignKey(attempt => attempt.WriterSessionId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

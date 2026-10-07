@@ -45,6 +45,10 @@ public sealed class ExamAttempt
     public DateTime EffectiveDeadlineUtc { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime? ExpiredAtUtc { get; private set; }
+    public Guid? WriterSessionId { get; private set; }
+    public long WriteLeaseVersion { get; private set; }
+    public DateTime? WriteLeaseAcquiredAtUtc { get; private set; }
+    public long AnswerSetVersion { get; private set; }
     public byte[] RowVersion { get; private set; } = [];
 
     public bool IsInProgress => Status == ExamAttemptStatus.InProgress;
@@ -124,11 +128,95 @@ public sealed class ExamAttempt
         ExpiredAtUtc = expiredAtUtc;
     }
 
+    public void AcquireWriteLease(Guid sessionId, DateTime acquiredAtUtc)
+    {
+        EnsureWritable(acquiredAtUtc);
+        EnsureIdentifier(sessionId, nameof(sessionId));
+        if (WriterSessionId == sessionId)
+        {
+            return;
+        }
+
+        if (WriterSessionId.HasValue)
+        {
+            throw new ExamWriteLeaseHeldException();
+        }
+
+        SetWriter(sessionId, acquiredAtUtc);
+    }
+
+    public void TransferWriteLease(Guid sessionId, DateTime acquiredAtUtc)
+    {
+        EnsureWritable(acquiredAtUtc);
+        EnsureIdentifier(sessionId, nameof(sessionId));
+        if (WriterSessionId == sessionId)
+        {
+            return;
+        }
+
+        SetWriter(sessionId, acquiredAtUtc);
+    }
+
+    public void EnsureWriteLease(Guid sessionId, long expectedLeaseVersion, DateTime nowUtc)
+    {
+        EnsureWritable(nowUtc);
+        EnsureIdentifier(sessionId, nameof(sessionId));
+        if (!WriterSessionId.HasValue)
+        {
+            throw new ExamWriteLeaseRequiredException();
+        }
+
+        if (expectedLeaseVersion != WriteLeaseVersion)
+        {
+            throw new ExamWriteLeaseStaleException();
+        }
+
+        if (WriterSessionId != sessionId)
+        {
+            throw new ExamWriteLeaseHeldException();
+        }
+    }
+
+    public long AcceptAnswerMutation()
+    {
+        AnswerSetVersion = checked(AnswerSetVersion + 1);
+        return AnswerSetVersion;
+    }
+
+    public void EnsureWritable(DateTime nowUtc)
+    {
+        nowUtc = EnsureUtc(nowUtc, nameof(nowUtc));
+        if (!IsInProgress)
+        {
+            throw new ExamAttemptNotWritableException();
+        }
+
+        if (nowUtc >= EffectiveDeadlineUtc)
+        {
+            throw new ExamAttemptDeadlinePassedException();
+        }
+    }
+
+    private void SetWriter(Guid sessionId, DateTime acquiredAtUtc)
+    {
+        WriterSessionId = sessionId;
+        WriteLeaseVersion = checked(WriteLeaseVersion + 1);
+        WriteLeaseAcquiredAtUtc = EnsureUtc(acquiredAtUtc, nameof(acquiredAtUtc));
+    }
+
     private static void ValidateIdentifiers(params Guid[] identifiers)
     {
         if (identifiers.Any(identifier => identifier == Guid.Empty))
         {
             throw new ArgumentException("شناسه‌های تلاش آزمون الزامی هستند.");
+        }
+    }
+
+    private static void EnsureIdentifier(Guid identifier, string parameterName)
+    {
+        if (identifier == Guid.Empty)
+        {
+            throw new ArgumentException("شناسه الزامی است.", parameterName);
         }
     }
 
@@ -144,3 +232,8 @@ public sealed class ExamAttempt
 public sealed class ExamNotAvailableYetException : Exception;
 public sealed class ExamWindowClosedException : Exception;
 public sealed class ExamAttemptsExhaustedException : Exception;
+public sealed class ExamAttemptNotWritableException : Exception;
+public sealed class ExamAttemptDeadlinePassedException : Exception;
+public sealed class ExamWriteLeaseRequiredException : Exception;
+public sealed class ExamWriteLeaseHeldException : Exception;
+public sealed class ExamWriteLeaseStaleException : Exception;
